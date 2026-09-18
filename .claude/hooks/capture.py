@@ -74,17 +74,53 @@ def read_transcript(path):
     return out
 
 
-def final_assistant(entries):
+def parse_ts(s):
+    """Parse an ISO-8601 UTC stamp ('2026-09-18T07:32:53.342Z') to datetime, or None."""
+    if not s:
+        return None
+    s = str(s).strip()
+    try:
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        d = datetime.datetime.fromisoformat(s)
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=datetime.timezone.utc)
+        return d
+    except Exception:
+        return None
+
+
+def last_prompt_ts(path):
+    """Timestamp of the most recent PROMPT entry in the log -- the turn we must pair with."""
+    if not path or not os.path.exists(path):
+        return None
+    body = open(path, errors="replace").read()
+    hits = re.findall(
+        r"^\[LOG_ENTRY type=PROMPT num=\d+ session=\S+\]\ntimestamp: (.+)$", body, re.M
+    )
+    return parse_ts(hits[-1]) if hits else None
+
+
+def final_assistant(entries, after_ts=None):
     """
     The final response for the turn = the last non-sidechain assistant message
     that carries at least one text block. Returns (text, model).
 
     Thinking blocks and tool_use blocks are dropped: the brief asks for the
     prompt and the final answer, nothing in between.
+
+    When after_ts is given, only entries stamped strictly after it qualify.
+    That is what stops a slow transcript flush from silently pairing the
+    PREVIOUS turn's answer with the current prompt: an entry we cannot date,
+    or one older than the prompt, is refused rather than guessed at.
     """
     for e in reversed(entries):
         if e.get("type") != "assistant" or e.get("isSidechain"):
             continue
+        if after_ts is not None:
+            ets = parse_ts(e.get("timestamp"))
+            if ets is None or ets <= after_ts:
+                continue
         msg = e.get("message") or {}
         content = msg.get("content")
         if not isinstance(content, list):
@@ -120,6 +156,14 @@ def count_entries(path, kind):
         return 0
     body = open(path, errors="replace").read()
     return len(re.findall(r"^\[LOG_ENTRY type=%s num=" % kind, body, re.M))
+
+
+def last_entry_kind(path):
+    """PROMPT or RESPONSE -- whichever LOG_ENTRY appears last in the file."""
+    if not path or not os.path.exists(path):
+        return None
+    hits = re.findall(r"^\[LOG_ENTRY type=(PROMPT|RESPONSE) num=", open(path, errors="replace").read(), re.M)
+    return hits[-1] if hits else None
 
 
 def refresh_frontmatter(path, session_id, model):
@@ -222,25 +266,32 @@ def handle_response(data):
     n_resp = count_entries(path, "RESPONSE")
     if n_resp >= n_prompt:
         return  # Stop fired twice for one turn; don't double-write.
+    if last_entry_kind(path) != "PROMPT":
+        # Only ever answer a prompt that is actually still open. Counts alone
+        # can drift if a turn ends without a response (interrupt, crash), and
+        # a later Stop would then backfill several responses at once.
+        return
 
     # The transcript file is written by a separate process. Stop can fire a
     # beat before the final assistant message is flushed to disk, so a single
     # read can race a still-in-flight write. Poll briefly before giving up
     # (well under the hook's 20s timeout).
     transcript_path = data.get("transcript_path")
+    after_ts = last_prompt_ts(path)
+    max_attempts = int(os.environ.get("CAPTURE_POLL_ATTEMPTS", "30"))
     text, model = None, None
     attempts = 0
-    for attempts in range(1, 21):
+    for attempts in range(1, max_attempts + 1):
         entries = read_transcript(transcript_path)
-        text, model = final_assistant(entries)
+        text, model = final_assistant(entries, after_ts=after_ts)
         if text is not None:
             break
         time.sleep(0.15)
 
     if text is None:
         note_error(
-            "Stop: no assistant text found after %d attempts (~%.1fs). transcript=%s"
-            % (attempts, attempts * 0.15, transcript_path)
+            "Stop: no assistant text newer than prompt (%s) after %d attempts (~%.1fs). "
+            "transcript=%s" % (after_ts, attempts, attempts * 0.15, transcript_path)
         )
         text = "(no final text response captured for this turn)"
         model = model_from_log(path) or "unknown"
