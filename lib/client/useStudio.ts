@@ -5,7 +5,9 @@ import {
   DEFAULT_FPS, bitrateFor, dimensionsFor, drawFrame, applyVignette,
   encodeVideo, frameCount, getMotion, hasWebCodecs,
 } from '@/lib/engine'
+import { ASPECT_RATIOS, RESOLUTIONS } from '@/lib/engine/types'
 import type { AspectRatio, Bitrate, MotionId, Resolution } from '@/lib/engine/types'
+import { MOTION_IDS } from '@/lib/engine/motion'
 import type { Generation } from '@/lib/generation/types'
 import { STILL_MODEL } from '@/lib/providers/cinematic'
 import * as api from './api'
@@ -13,6 +15,8 @@ import { ApiError, type Catalog, type CreateInput } from './api'
 
 export interface ComposerState {
   prompt: string
+  /** When set, this image is the source frame instead of a generated still. */
+  referenceUrl?: string | null
   model: string
   motion: MotionId
   durationS: number
@@ -23,6 +27,7 @@ export interface ComposerState {
 
 export const DEFAULT_COMPOSER: ComposerState = {
   prompt: '',
+  referenceUrl: null,
   model: 'slate-cinematic-1',
   motion: 'dolly_in',
   durationS: 6,
@@ -42,15 +47,49 @@ const STAGE_FLOOR: Record<RunState['stage'], number> = {
   image: 0, render: 25, encode: 40, upload: 92,
 }
 
-export function useStudio() {
+/**
+ * Hydrate the composer from URL params so Explore and the Motion Library can
+ * hand real parameters to Create Video with a plain link -- shareable, and no
+ * cross-route store to keep in sync.
+ */
+export function composerFromParams(params: URLSearchParams | null): Partial<ComposerState> {
+  if (!params) return {}
+  const out: Partial<ComposerState> = {}
+  const prompt = params.get('prompt')
+  if (prompt && prompt.trim().length >= 3) out.prompt = prompt.slice(0, 2000)
+
+  // Validated against the static enums, not the fetched catalogue: the catalogue
+  // is still null at mount, so validating against it silently dropped every
+  // value here.
+  const motion = params.get('motion')
+  if (motion && (MOTION_IDS as string[]).includes(motion)) out.motion = motion as MotionId
+  const dur = Number(params.get('duration'))
+  if (Number.isInteger(dur) && dur >= 4 && dur <= 30) out.durationS = dur
+
+  const aspect = params.get('aspect')
+  if (aspect && (ASPECT_RATIOS as readonly string[]).includes(aspect)) {
+    out.aspectRatio = aspect as AspectRatio
+  }
+  const res = params.get('resolution')
+  if (res && (RESOLUTIONS as readonly string[]).includes(res)) {
+    out.resolution = res as Resolution
+  }
+  const br = params.get('bitrate')
+  if (br === 'standard' || br === 'high') out.bitrate = br
+  return out
+}
+
+export function useStudio(initial?: Partial<ComposerState>) {
   const [catalog, setCatalog] = useState<Catalog | null>(null)
-  const [composer, setComposer] = useState<ComposerState>(DEFAULT_COMPOSER)
+  const [composer, setComposer] = useState<ComposerState>({ ...DEFAULT_COMPOSER, ...initial })
   const [history, setHistory] = useState<Generation[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [run, setRun] = useState<RunState | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [notice, setNotice] = useState<string | null>(null)
   const [booting, setBooting] = useState(true)
+  // Captured once: later renders must not re-apply URL params over user edits.
+  const initialRef = useRef(initial)
 
   // One encode at a time: parallel encodes thrash the CPU and make every clip
   // slower. Extra requests queue instead.
@@ -68,6 +107,9 @@ export function useStudio() {
         const [cat, list] = await Promise.all([api.getCatalog(), api.listGenerations()])
         if (!alive) return
         setCatalog(cat)
+        if (initialRef.current) {
+          setComposer((c) => ({ ...c, ...initialRef.current }))
+        }
         setHistory(list.generations)
         setSelectedId(list.generations[0]?.id ?? null)
       } catch {
@@ -113,10 +155,13 @@ export function useStudio() {
 
       const img = new Image()
       img.decoding = 'async'
+      img.crossOrigin = 'anonymous'
       await new Promise<void>((res, rej) => {
         img.onload = () => res()
-        img.onerror = () => rej(new Error('still_unavailable'))
-        img.src = api.stillUrl({
+        img.onerror = () => rej(new Error(gen.referenceUrl ? 'reference_unreadable' : 'still_unavailable'))
+        // A reference image replaces the generated still entirely: the camera
+        // move runs over the user's own frame.
+        img.src = gen.referenceUrl ?? api.stillUrl({
           prompt: gen.prompt, width: dims.width, height: dims.height,
           seed: gen.seed, model: STILL_MODEL[gen.model] ?? 'flux',
         })
@@ -166,6 +211,7 @@ export function useStudio() {
         : hasWebCodecs() ? 'encode_failed' : 'encode_unsupported'
       const message =
         code === 'still_unavailable' ? 'The image service did not respond. Try again.'
+        : code === 'reference_unreadable' ? 'Your reference image could not be loaded.'
         : code === 'encode_unsupported' ? 'This browser cannot encode video.'
         : err instanceof Error ? err.message : 'Rendering failed.'
       try {
@@ -203,7 +249,11 @@ export function useStudio() {
   const generate = useCallback(async () => {
     setFieldErrors({}); setNotice(null)
     try {
-      const input: CreateInput = { ...composer, prompt: composer.prompt.trim() }
+      const input: CreateInput = {
+        ...composer,
+        prompt: composer.prompt.trim(),
+        referenceUrl: composer.referenceUrl ?? null,
+      }
       const { generation } = await api.createGeneration(input)
       enqueue(generation)
     } catch (err) {
@@ -236,6 +286,7 @@ export function useStudio() {
     setComposer({
       prompt: g.prompt, model: g.model, motion: g.motion, durationS: g.durationS,
       aspectRatio: g.aspectRatio, resolution: g.resolution, bitrate: g.bitrate,
+      referenceUrl: g.referenceUrl,
     })
   }, [])
 

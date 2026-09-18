@@ -6,6 +6,7 @@ import type { AspectRatio, Bitrate, Resolution, MotionId } from '@/lib/engine/ty
 import type { Catalog } from '@/lib/client/api'
 import type { ComposerState } from '@/lib/client/useStudio'
 import { Badge, Label, Panel, Segmented, Slider } from './primitives'
+import { MediaInput } from './MediaInput'
 
 const EXAMPLES = [
   'a lone figure on a rain-slicked Tokyo street, neon signs bleeding into the puddles',
@@ -46,6 +47,12 @@ export function Composer({
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-5">
+      <MediaInput
+        value={state.referenceUrl}
+        onChange={(url) => set('referenceUrl', url)}
+        disabled={running}
+      />
+
       {/* Prompt — the first-class surface. */}
       <div>
         <Label hint={`${state.prompt.length}/2000`}>Prompt</Label>
@@ -64,7 +71,11 @@ export function Composer({
             }}
             rows={3}
             maxLength={2000}
-            placeholder="Describe the shot. Subject, setting, light, mood."
+            placeholder={
+              state.referenceUrl
+                ? 'Describe the shot (kept with the clip; the reference supplies the frame)'
+                : 'Describe the shot. Subject, setting, light, mood.'
+            }
             className="w-full resize-none bg-transparent px-3 py-2.5 text-sm leading-relaxed
               text-ink placeholder:text-ink-4 focus:outline-none"
           />

@@ -1,5 +1,5 @@
-import { StudioShell } from '@/components/studio/StudioShell'
+import { redirect } from 'next/navigation'
 
-export default function Page() {
-  return <StudioShell />
+export default function Home() {
+  redirect('/studio')
 }

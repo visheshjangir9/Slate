@@ -41,12 +41,20 @@ async function json<T>(res: Response): Promise<T> {
 
 export interface CreateInput {
   prompt: string
+  referenceUrl?: string | null
   model: string
   motion: MotionId
   durationS: number
   aspectRatio: AspectRatio
   resolution: Resolution
   bitrate: Bitrate
+}
+
+export function uploadReference(file: File) {
+  const form = new FormData()
+  form.append('image', file)
+  return fetch('/api/uploads/reference', { method: 'POST', body: form })
+    .then(json<{ url: string; bytes: number }>)
 }
 
 export const getCatalog = () => fetch('/api/models').then(json<Catalog>)

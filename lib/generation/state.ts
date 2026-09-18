@@ -153,6 +153,7 @@ export function isStale(
 export const ERROR_COPY: Record<string, string> = {
   client_disconnected: 'Rendering stopped, most likely because the tab was closed.',
   still_unavailable: 'The image service did not respond. This usually clears on a retry.',
+  still_rate_limited: 'The image service is rate limiting us. Wait a moment, then retry.',
   encode_failed: 'Your browser could not encode the video.',
   provider_unavailable: 'The generation engine is temporarily unreachable.',
   upload_failed: 'The finished video could not be saved.',

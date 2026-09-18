@@ -4,25 +4,24 @@ export const CINEMATIC_MODELS: ModelDescriptor[] = [
   {
     id: 'slate-cinematic-1',
     label: 'Slate Cinematic 1',
-    description: 'Highest fidelity stills with full camera control. Best default.',
+    description: 'AI still at full resolution, driven by a real eased camera move.',
     providerId: 'cinematic',
     badge: 'TOP',
     available: true,
   },
-  {
-    id: 'slate-turbo',
-    label: 'Slate Turbo',
-    description: 'Roughly twice as fast, slightly softer detail. Good for iterating.',
-    providerId: 'cinematic',
-    badge: 'NEW',
-    available: true,
-  },
 ]
 
-/** Image model passed through to the still service for each Slate model. */
+/**
+ * Image model passed through to the still service.
+ *
+ * Only one entry, deliberately. A second "turbo" model was removed after
+ * testing showed the upstream ignores the model parameter: flux and turbo
+ * returned byte-identical files for the same seed, so the choice was cosmetic
+ * and the "twice as fast" claim was unverifiable. A second model returns here
+ * only when it is proven to produce different output.
+ */
 export const STILL_MODEL: Record<string, string> = {
   'slate-cinematic-1': 'flux',
-  'slate-turbo': 'turbo',
 }
 
 /**
