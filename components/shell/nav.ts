@@ -78,7 +78,7 @@ export const PRIMARY_NAV: NavItem[] = [
 ]
 
 export const STUDIO_TABS: NavItem[] = [
-  { label: 'Create Video', href: '/studio', match: (p) => p === '/studio' },
-  { label: 'Still Image', href: '/studio/image' },
-  { label: 'Motion Library', href: '/studio/motion' },
+  { label: 'Create', href: '/studio', match: (p) => p === '/studio' },
+  { label: 'Image', href: '/studio/image' },
+  { label: 'Motion', href: '/studio/motion' },
 ]

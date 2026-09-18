@@ -29,9 +29,20 @@ export function CreateVideo({ params }: { params: ReadonlyURLSearchParams | null
       )}
 
       <main className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <section className="order-1 flex min-h-[46vh] flex-1 flex-col lg:order-2 lg:min-h-0"
-          style={{ containerType: 'size' }}>
-          <Stage generation={s.selected} run={s.run} onRetry={s.retry} onReuse={s.reuse} />
+        <section className="order-1 flex min-h-[52vh] flex-1 flex-col lg:order-2 lg:min-h-0">
+          {/* Below lg the history lives in a sheet, opened from here. A fixed
+              pill would sit on top of the full-width Generate action. */}
+          <div className="flex shrink-0 items-center justify-between border-b border-line px-3 py-2 lg:hidden">
+            <span className="text-[11px] uppercase tracking-[0.09em] text-ink-4">Stage</span>
+            <button type="button" onClick={() => setSheetOpen(true)}
+              className="rounded-md border border-line px-2.5 py-1.5 text-xs text-ink-2
+                transition-colors duration-150 hover:border-line-strong hover:text-ink">
+              History {s.history.length > 0 && <span className="tabular text-ink-4">{s.history.length}</span>}
+            </button>
+          </div>
+          <div className="min-h-0 flex-1" style={{ containerType: 'size' }}>
+            <Stage generation={s.selected} run={s.run} onRetry={s.retry} onRemix={s.reuse} />
+          </div>
         </section>
 
         <aside className="order-2 flex min-h-0 shrink-0 border-t border-line
@@ -61,11 +72,6 @@ export function CreateVideo({ params }: { params: ReadonlyURLSearchParams | null
         </section>
       </main>
 
-      <button type="button" onClick={() => setSheetOpen(true)}
-        className="fixed bottom-4 right-4 z-20 rounded-full border border-line bg-surface-2 px-4 py-2.5
-          text-xs font-medium text-ink-2 shadow-lg lg:hidden">
-        History {s.history.length > 0 && <span className="tabular text-ink-4">({s.history.length})</span>}
-      </button>
       {sheetOpen && (
         <div className="fixed inset-0 z-30 flex flex-col justify-end lg:hidden">
           <button type="button" aria-label="Close history" onClick={() => setSheetOpen(false)}

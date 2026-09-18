@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { dimensionsFor } from '@/lib/engine'
 import { ERROR_COPY } from '@/lib/generation/state'
@@ -21,10 +22,11 @@ const fmtDate = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 export function AssetsPage() {
+  const params = useSearchParams()
   const [items, setItems] = useState<Generation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(() => params?.get('q') ?? '')
   const [filter, setFilter] = useState<'all' | GenerationStatus>('all')
   const [open, setOpen] = useState<Generation | null>(null)
 

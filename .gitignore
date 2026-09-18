@@ -43,3 +43,6 @@ next-env.d.ts
 # python (capture hooks)
 __pycache__/
 *.pyc
+
+# Per-user local Claude Code state (never committed)
+.claude/settings.local.json

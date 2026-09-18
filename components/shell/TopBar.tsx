@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { IMAGE_MENU, PRIMARY_NAV, VIDEO_MENU, type MegaMenu } from './nav'
 import { Wordmark } from './Wordmark'
@@ -48,6 +48,8 @@ function MegaPanel({ menu, onNavigate }: { menu: MegaMenu; onNavigate: () => voi
 
 export function TopBar() {
   const path = usePathname()
+  const router = useRouter()
+  const [query, setQuery] = useState('')
   // Menu state is stored WITH the path it was opened on, so navigating closes
   // it by derivation rather than by a setState-in-effect cascade.
   const [openAt, setOpenAt] = useState<{ menu: string; path: string } | null>(null)
@@ -123,6 +125,27 @@ export function TopBar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Real search: submits to Assets, which filters the actual library. */}
+          <form
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const q = query.trim()
+              router.push(q ? `/assets?q=${encodeURIComponent(q)}` : '/assets')
+            }}
+            className="hidden md:block"
+          >
+            <label className="sr-only" htmlFor="slate-search">Search your assets</label>
+            <input
+              id="slate-search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search assets"
+              className="w-40 rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink
+                placeholder:text-ink-4 transition-colors duration-150 focus:w-56 focus:border-line-strong
+                focus:outline-none"
+            />
+          </form>
           <button
             type="button"
             aria-label="Toggle navigation"
