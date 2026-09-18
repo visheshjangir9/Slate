@@ -5,7 +5,7 @@
  * Exercises motion -> render -> encode end to end and reports hard numbers.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react'
 import {
   ASPECT_RATIOS, BITRATES, RESOLUTIONS, MOTIONS, DEFAULT_FPS,
   type AspectRatio, type Bitrate, type MotionId, type Resolution,
@@ -23,10 +23,15 @@ export default function EngineCheck() {
   const [bitrate, setBitrate] = useState<Bitrate>('standard')
   const [duration, setDuration] = useState(4)
   const [useRemote, setUseRemote] = useState(false)
-  // Capability detection must happen AFTER mount: the server has no
-  // VideoEncoder, so probing during render desynchronises hydration.
-  const [webcodecs, setWebcodecs] = useState<boolean | null>(null)
-  useEffect(() => setWebcodecs(hasWebCodecs()), [])
+  // Capability detection must not run during server render: there is no
+  // VideoEncoder there, so a direct probe desynchronises hydration.
+  // useSyncExternalStore gives a null server snapshot and the real value
+  // after mount, without a cascading setState-in-effect.
+  const webcodecs = useSyncExternalStore(
+    () => () => {},
+    () => hasWebCodecs(),
+    () => null,
+  )
 
   const [status, setStatus] = useState<Status>('idle')
   const [progress, setProgress] = useState(0)
@@ -89,7 +94,7 @@ export default function EngineCheck() {
       setError(e instanceof Error ? e.message : String(e))
       setStatus('error')
     }
-  }, [aspect, resolution, bitrate, duration, motion, useRemote, dims, total, bps, url])
+  }, [motion, useRemote, dims, total, bps, url])
 
   const busy = status === 'sourcing' || status === 'encoding'
 

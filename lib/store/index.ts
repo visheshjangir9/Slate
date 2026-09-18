@@ -14,7 +14,7 @@ import type { BlobStore, GenerationStore } from './types'
  * Route handlers only ever see the interface, so this is the single place that
  * knows which backend is in play.
  */
-const useMemory = (): boolean => {
+const shouldUseMemoryStore = (): boolean => {
   if (process.env.SLATE_STORE === 'memory') return true
   if (process.env.VITEST) return true
   return !hasSupabaseEnv()
@@ -26,12 +26,12 @@ const g = globalThis as typeof globalThis & {
 }
 
 export function generationStore(): GenerationStore {
-  g.__slateGenerations ??= useMemory() ? new MemoryGenerationStore() : new SupabaseGenerationStore()
+  g.__slateGenerations ??= shouldUseMemoryStore() ? new MemoryGenerationStore() : new SupabaseGenerationStore()
   return g.__slateGenerations
 }
 
 export function blobStore(): BlobStore {
-  g.__slateBlobs ??= useMemory() ? new MemoryBlobStore() : new SupabaseBlobStore()
+  g.__slateBlobs ??= shouldUseMemoryStore() ? new MemoryBlobStore() : new SupabaseBlobStore()
   return g.__slateBlobs
 }
 
