@@ -19,6 +19,7 @@ import os
 import re
 import sys
 import glob
+import time
 import datetime
 import traceback
 
@@ -222,10 +223,25 @@ def handle_response(data):
     if n_resp >= n_prompt:
         return  # Stop fired twice for one turn; don't double-write.
 
-    entries = read_transcript(data.get("transcript_path"))
-    text, model = final_assistant(entries)
+    # The transcript file is written by a separate process. Stop can fire a
+    # beat before the final assistant message is flushed to disk, so a single
+    # read can race a still-in-flight write. Poll briefly before giving up
+    # (well under the hook's 20s timeout).
+    transcript_path = data.get("transcript_path")
+    text, model = None, None
+    attempts = 0
+    for attempts in range(1, 21):
+        entries = read_transcript(transcript_path)
+        text, model = final_assistant(entries)
+        if text is not None:
+            break
+        time.sleep(0.15)
+
     if text is None:
-        note_error("Stop: no assistant text found. transcript=%s" % data.get("transcript_path"))
+        note_error(
+            "Stop: no assistant text found after %d attempts (~%.1fs). transcript=%s"
+            % (attempts, attempts * 0.15, transcript_path)
+        )
         text = "(no final text response captured for this turn)"
         model = model_from_log(path) or "unknown"
 
