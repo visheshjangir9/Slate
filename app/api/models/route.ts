@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { listModels, availableProviders } from '@/lib/providers/registry'
 import { MOTIONS } from '@/lib/engine/motion'
 import { ASPECT_RATIOS, BITRATES, MAX_DURATION_S, MIN_DURATION_S, RESOLUTIONS } from '@/lib/engine/types'
-import { persistenceIsDurable } from '@/lib/store'
+import { persistenceIsDurable, persistenceName } from '@/lib/store'
 
 /** Everything the composer needs to render itself. One request, no waterfalls. */
 export async function GET() {
@@ -24,6 +24,6 @@ export async function GET() {
       execution: p.capabilities.execution,
       sunsetAt: p.capabilities.sunsetAt ?? null,
     })),
-    persistence: { durable: persistenceIsDurable() },
+    persistence: { durable: persistenceIsDurable(), adapter: persistenceName() },
   })
 }

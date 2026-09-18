@@ -2,8 +2,14 @@
 -- Apply in the Supabase SQL editor once the project exists.
 -- Mirrors lib/generation/types.ts; the Supabase store adapter maps to it 1:1.
 
-create type generation_status as enum ('queued', 'generating', 'completed', 'failed');
-create type generation_stage  as enum ('image', 'render', 'encode', 'upload');
+-- Idempotent: safe to re-run. CREATE TYPE has no IF NOT EXISTS.
+do $$ begin
+  create type generation_status as enum ('queued', 'generating', 'completed', 'failed');
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create type generation_stage as enum ('image', 'render', 'encode', 'upload');
+exception when duplicate_object then null; end $$;
 
 create table if not exists generations (
   id             uuid primary key default gen_random_uuid(),
@@ -49,6 +55,6 @@ alter table generations enable row level security;
 -- which is what lets device ownership be enforced by signed cookie rather than
 -- by a client-supplied id that anyone could forge.
 
--- Storage buckets (create via dashboard or storage API):
+-- Storage buckets are created programmatically by scripts/setup-storage.mjs:
 --   outputs    : public read, server write  (mp4 + poster)
 --   references : public read, server write, 10MB object limit

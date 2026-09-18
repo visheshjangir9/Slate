@@ -6,7 +6,10 @@ import { badRequest, conflict, notFound, ok, serverError } from '@/lib/api/respo
 
 type Ctx = { params: Promise<{ id: string }> }
 
-const MAX_BYTES = 120 * 1024 * 1024
+// Must not exceed the storage bucket's per-object limit, which is itself
+// capped by the project's global upload limit (50MB on the free tier).
+// Measured worst case is ~19MB for 30s of 1080p at high bitrate.
+const MAX_BYTES = 50 * 1024 * 1024
 const ALLOWED_VIDEO = ['video/mp4', 'video/webm']
 const ALLOWED_POSTER = ['image/jpeg', 'image/png', 'image/webp']
 
@@ -28,7 +31,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
       return badRequest(`Unsupported video type "${video.type}"`)
     }
     if (video.size === 0) return badRequest('Video file is empty')
-    if (video.size > MAX_BYTES) return badRequest('Video exceeds the size limit')
+    if (video.size > MAX_BYTES) return badRequest('Video exceeds the 50MB size limit')
 
     const blobs = blobStore()
     const ext = video.type === 'video/mp4' ? 'mp4' : 'webm'
