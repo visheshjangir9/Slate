@@ -274,42 +274,127 @@ Rules:
 
 ---
 
-## J. Provider strategy and fallback
+## J. Provider strategy, fallback, and the Sora spike
 
-This is the highest-risk decision, so it was researched rather than assumed. **Findings are verified, not quoted from marketing:**
+*Revised 2026-09-18 after an OpenAI key became available for 1–2 real generations.*
 
-| Option | Verified result | Verdict |
+### J.1 Research findings (verified against live docs, not training data)
+
+| Question | Finding | Source confidence |
 |---|---|---|
-| **fal.ai** (Kling/Veo/Seedance) | Real video diffusion, but **$10 minimum top-up** — per-clip pricing is unreachable below it | Blocked on budget |
-| Replicate | Requires card on file | Blocked |
-| "Free video API" vendors | Trial credits with short expiry, or wrappers. Nothing dependable for a live judged link | Rejected |
-| **Pollinations** (`model=flux`) | **Tested live: HTTP 200, 768×432 JPEG, 3.1s, keyless, no watermark** | **Selected** |
-| Cloudflare Workers AI (FLUX schnell) | Genuinely free ~10k req/day, no card, needs a free account | Selected as secondary |
+| Create | `POST /v1/videos` | High — consistent everywhere |
+| Poll | `GET /v1/videos/{video_id}` → `status`, `progress` (0–100) | High |
+| Statuses | `queued` → `in_progress` → `completed` \| `failed` | High |
+| Download | `GET /v1/videos/{video_id}/content`, binary MP4, `variant=video\|thumbnail\|spritesheet` | High |
+| **URL lifetime** | **Download valid ~1 hour after generation** | High — drives a hard design requirement |
+| Models | `sora-2`, `sora-2-pro` | High |
+| Image input | `input_reference` (JPEG/PNG/WebP), **must match target resolution** | High |
+| Webhooks | `video.completed`, `video.failed` | High |
+| `size` | `720x1280`, `1280x720`, `1024x1792`, `1792x1024` | Medium |
+| `seconds` | **Disputed — see below** | **Low** |
+| Price | sora-2 **$0.10/s** @720p · sora-2-pro $0.30/s @720p, $0.50/s @high-res | Medium |
 
-**Conclusion: there is no free, reliable text-to-video API.** So rather than fake a diffusion model or gate the demo behind a payment, the video is *actually produced*:
+**The `seconds` discrepancy, recorded rather than guessed at.** Three sources disagree:
 
-### `CinematicProvider` (default, free, zero-key)
-1. Prompt → a real AI still image (Pollinations FLUX — verified above).
-2. Still → a real camera move: time-varying affine transform with eased keyframes (dolly, pan, tilt, orbit, crash zoom, crane, handheld), plus subtle motion blur, grain and vignette.
-3. Frames → a real H.264 MP4 at the chosen duration, aspect ratio, resolution and bitrate.
+- OpenAI's own guide page, as fetched: `"8"`, `"16"`, `"20"`
+- Third-party docs and my prior knowledge: `4`, `8`, `12` for sora-2 (`10`, `15`, `25` for pro)
+- The fetched page also returned Azure-flavoured sizes (`1920x1080`, `480x848`), which suggests the summariser blended Azure Foundry content into the OpenAI answer — so that page's values are **not trustworthy**
 
-The output is a genuine downloadable MP4. It is **not** text-to-video diffusion, and the UI will say so plainly — the engine is labelled in the header and in each model's description. Claiming otherwise would be the "fake experience" we were told to avoid; labelling it honestly makes it a real, working product with a stated technique.
+Resolution: **do not hardcode a guess.** A malformed request returns HTTP 400 *before any generation runs and therefore costs nothing*, and OpenAI's validation errors enumerate the accepted values. So the spike's first call is a deliberate zero-cost probe that makes the API tell us its own contract. Discovered values get written into `docs/PROVIDERS.md` and the provider's capability table.
 
-### `FalProvider` (optional upgrade, env-gated)
-Implements the identical interface. Setting `FAL_KEY` makes real diffusion models appear in the selector automatically — no other code changes. This is the replaceability requirement, and it means the $10 decision can be deferred or made after submission without a rewrite.
+### J.2 The decisive constraint
+
+**The Sora API shuts down 2026-09-24.** Announced 2026-03-24; the consumer apps already went dark 2026-04-26; the deprecation table lists **no replacement**.
+
+That is **six days** from now, and the day after this assignment is judged. A submitted product whose core feature dies within a week is a product-judgement failure, not a feature.
+
+So Sora's role is settled and narrow:
+
+> **Sora is a proving instrument for the abstraction, never the shipped default.**
+
+- It runs **locally only**, for 1–2 recorded real generations
+- `OPENAI_API_KEY` is **never set in Vercel** — production simply has no Sora provider configured, and the registry falls through to the free engine
+- The recorded artifact and logs go in the repo as evidence the abstraction drives a real third-party video API
+- The walkthrough states plainly why it was not shipped
+
+This is the strongest available answer to "did you just build a toy?" — the abstraction is demonstrably real, and the decision not to ship it is the judgement being demonstrated.
+
+### J.3 Provider interface
+
+Two things the naive version of this gets wrong, both handled explicitly:
+
+**(a) Execution location differs per provider.** The free engine renders in the browser; Sora and fal run server-side and are polled. The job record and state machine are identical either way — only the executor changes.
+
+**(b) Our settings model is richer than Sora's.** We offer 6 aspect ratios × 3 resolutions × 4–30s. Sora offers 4 sizes and 3 durations. An abstraction that ignores this either crashes or silently lies about what it rendered. Hence `negotiate()`, which is a first-class interface method rather than an afterthought.
 
 ```ts
+type ProviderId = 'cinematic' | 'sora' | 'fal'
+
+interface ProviderCapabilities {
+  id: ProviderId
+  label: string                       // shown in the model selector
+  execution: 'client' | 'server'      // (a)
+  requiresKey: boolean
+  configured: boolean                 // key present in THIS environment
+  durations: number[]                 // discovered, not assumed
+  sizes: string[]
+  supportsReference: boolean
+  sunsetAt?: string                   // sora: '2026-09-24' — surfaced in UI
+  estimateCostUsd?(req: GenerationRequest): number
+}
+
+interface Negotiation {
+  normalized: NormalizedRequest
+  adjustments: Array<{               // (b) — never silent
+    field: 'duration' | 'size' | 'aspectRatio' | 'resolution'
+    requested: string
+    actual: string
+    reason: string
+  }>
+}
+
 interface GenerationProvider {
-  id: string
-  models(): ModelDescriptor[]
-  submit(job: GenerationJob): Promise<ProviderHandle>
-  poll(handle: ProviderHandle): Promise<ProviderState>
-  capabilities: { maxDuration: number; resolutions: string[]; needsKey: boolean }
+  capabilities: ProviderCapabilities
+  negotiate(req: GenerationRequest): Negotiation
+  submit(req: NormalizedRequest): Promise<ProviderHandle>
+  poll(h: ProviderHandle): Promise<ProviderState>
+  fetchArtifact(h: ProviderHandle): Promise<{ stream: ReadableStream; contentType: string }>
+  cancel?(h: ProviderHandle): Promise<void>
 }
 ```
 
-**Fallback ladder:** Pollinations → Cloudflare FLUX → deterministic generated gradient frame. The pipeline always yields a playable artifact; it never dead-ends.
+The registry resolves by id and **falls through to `cinematic` whenever a provider is unconfigured**, so an absent key degrades to the free engine instead of erroring. Adding fal.ai later means one new file plus one registry line.
 
+### J.4 Two consequences that would bite later if ignored
+
+**Artifacts must be re-hosted immediately.** Sora download URLs expire in ~1 hour. On `completed` the server streams the MP4 straight into Supabase Storage and persists *our* URL. If history pointed at OpenAI's URL, every Sora generation would 404 an hour later — and after the 24th, permanently.
+
+**Polling without a background worker.** Vercel functions can't hold a long poll. `GET /api/generations/:id` performs a *poll-through*: if the record is server-executed, non-terminal, and its `provider_polled_at` is stale, it polls the provider inline, persists any transition, then responds. The client's existing status poll drives provider polling for free — no cron, no queue, no webhook endpoint required. Webhooks stay available as a later optimisation.
+
+### J.5 Key handling — non-negotiable rules
+
+1. `OPENAI_API_KEY` is read from `process.env` **only**, in a module marked `import 'server-only'`. It can never reach a client bundle.
+2. Never committed. `.env*` is already gitignored; a unit test additionally greps the working tree for key-shaped strings and fails the suite on a hit.
+3. Never logged. The provider's error path redacts `Authorization` and any `sk-`-prefixed token before anything is written or thrown.
+4. Never sent anywhere but `api.openai.com`, enforced by an explicit host check in the client wrapper.
+5. Never set in Vercel, per §J.2.
+6. The user enters it directly into `.env.local` — never pasted into chat, a source file, or a shell command that lands in history.
+
+### J.6 Cost control for the spike
+
+sora-2 at $0.10/s is the only tier considered; `sora-2-pro` ($0.30–0.50/s) is excluded outright.
+
+| Config | Cost |
+|---|---|
+| sora-2, shortest duration, `1280x720` | **$0.40** (if 4s is valid) / **$0.80** (if 8s is the floor) |
+| Zero-cost 400 probe | **$0.00** |
+| Two tests, worst case | **≤ $1.60** |
+
+Guards: the spike script prints its own cost estimate and requires an explicit confirmation flag before spending; `sora-2-pro` and the high-res sizes are rejected in code; a hard per-run ceiling aborts above $1.00.
+
+### J.7 Default provider — unchanged
+
+`CinematicProvider` remains the shipped default, exactly as approved: real AI still (Pollinations FLUX — verified working, keyless, watermark-free, 3.1s) → real eased camera move → real H.264 encode honouring all four settings. It has no key, no quota, no sunset date, and it is what the judge's live link will run on.
 ---
 
 ## K. Testing strategy
@@ -360,6 +445,7 @@ Pre-submission gate: production URL in a private window, mobile viewport, full g
 | 0 | **Plan approval** | 0.5 | This document approved; accounts created |
 | 1 | **Foundation + first deploy** | 1.5 | Next.js + Tailwind + design tokens; Supabase schema applied; **live URL responding** |
 | 2 | **Camera + encode engine** | 3.0 | Canvas renderer, all motion presets, WebCodecs MP4, unit tests green. *Highest-risk item, built first.* |
+| 2.5 | **Sora validation spike** *(local only)* | 0.5 | Zero-cost 400 probe resolves the `seconds` contract; 1 real generation verified end to end; artifact + findings committed to `docs/PROVIDERS.md`; `OPENAI_API_KEY` confirmed absent from Vercel |
 | 3 | **Provider + API + persistence** | 2.5 | Provider interface, Pollinations impl, all endpoints, state machine, storage upload |
 | 4 | **Studio UI** | 4.0 | Composer, model selector, settings, reference upload, stage, history rail — wired end to end |
 | 5 | **States + polish** | 3.0 | Empty/loading/error/validation, responsive breakpoints, motion, poster frames |
@@ -385,6 +471,10 @@ Commit after every phase, interleaved with the `.agent-logs/` entries the hooks 
 | 7 | **Supabase free-tier storage (1GB) fills** | Low | ~2MB/clip ⇒ hundreds of clips. Retention sweep for anonymous jobs >7 days. |
 | 8 | **"Is this really AI video?" credibility challenge** | Medium | Met head-on: honest labelling in-product, technique explained in README and walkthrough, and a real diffusion path one env var away. Judged as engineering judgement under a real constraint, which it is. |
 | 9 | **Time lost to accounts (Vercel/Supabase/GitHub)** | Medium | Done during Phase 0 in parallel with scaffolding. |
+| 10 | **Sora API dies 2026-09-24, six days out** | High | Never the deployed default; `OPENAI_API_KEY` is never set in Vercel; registry falls through to the free engine when unconfigured. Product is unaffected on the 25th. |
+| 11 | **`seconds` contract is genuinely uncertain** | Medium | Resolved by a zero-cost 400 probe before any paid call, not by guessing. Discovered values recorded in `docs/PROVIDERS.md`. |
+| 12 | **Sora download URLs expire in ~1 hour** | High | Artifact streamed into Supabase Storage on completion; history always points at our URL, never OpenAI's. |
+| 13 | **API key leaking into repo, logs, or client bundle** | High | `server-only` module boundary, redaction in error paths, host allow-list, `.env*` gitignored, plus a unit test that greps the tree for key-shaped strings and fails the suite. |
 
 ---
 
