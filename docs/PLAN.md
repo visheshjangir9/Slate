@@ -115,8 +115,8 @@ Taken from the brief's own MVP table.
 - Responsive UI
 - Deployment (public, works signed-out)
 
-### One addition I am proposing (needs your approval)
-- **Camera-motion preset** as a first-class generation parameter.
+### Approved addition to MUST HAVE
+- **Camera-motion preset** as a first-class generation parameter. *(Approved 2026-09-18.)*
 
   Rationale: it is Higgsfield's actual differentiator, the render engine needs a motion parameter regardless, and it costs ~40 minutes. Without it this is a generic video generator; with it, it reads as a Higgsfield clone. Flagging rather than adding silently.
 
@@ -388,9 +388,10 @@ Commit after every phase, interleaved with the `.agent-logs/` entries the hooks 
 
 ---
 
-## Open decisions — need your call before Phase 1
+## Decisions — resolved 2026-09-18, before Phase 1
 
-1. **Product name.** Proposing **Slate** (clapperboard; short, filmic, ownable). Alternatives: *Crane*, *Reframe*, *Kinoform*.
-2. **Camera-motion presets** as a must-have addition (§D). Approve or cut.
-3. **Accounts.** GitHub, Vercel and Supabase all needed — none exist yet.
-4. **fal.ai $10** — confirm we are proceeding on the free engine. The design keeps this reversible at any point.
+1. **Product name: Slate.** Clapperboard. Used in the header, repo, README and walkthrough.
+2. **Camera-motion presets: included** as a first-class generation control, promoted into MUST HAVE.
+3. **Accounts:** GitHub → Supabase → Vercel, walked through one at a time during Phase 0.
+4. **Budget: free engine, no spend.** `CinematicProvider` is the default. `FAL_KEY` remains a
+   drop-in upgrade behind the same interface, reversible at any point including post-submission.
