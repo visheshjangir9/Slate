@@ -392,6 +392,50 @@ sora-2 at $0.10/s is the only tier considered; `sora-2-pro` ($0.30–0.50/s) is 
 
 Guards: the spike script prints its own cost estimate and requires an explicit confirmation flag before spending; `sora-2-pro` and the high-res sizes are rejected in code; a hard per-run ceiling aborts above $1.00.
 
+### J.8 Phase 2 findings — measured, not assumed
+
+Verified in a real browser on 2026-09-18. These changed the design.
+
+**The browser can never fetch the still directly.** Pollinations returns
+`403 {"error":"Missing Turnstile token"}` whenever an `Origin` header is present,
+but `200` with a real JPEG from a server-side request with no `Origin`.
+
+```
+server-side, no Origin   -> http=200  29,134 bytes  image/jpeg  3.8s
+browser-like, w/ Origin  -> http=403  {"error":"Missing Turnstile token"}
+```
+
+So the pipeline is **server-fetches-still, client-renders-and-encodes**: the API route
+retrieves the image, persists it to Storage, and hands the client a same-origin URL.
+This also removes canvas tainting, since the image is no longer cross-origin. Had this
+surfaced in Phase 3 instead of Phase 2, the provider would have been built against an
+endpoint the browser cannot reach.
+
+**Encoder results** (4s @ 30fps, H.264 `avc1.640034`, WebCodecs):
+
+| Case | Dimensions | Size | Encode time |
+|---|---|---|---|
+| 16:9 720p standard | 1280×720 | 0.84 MB | 0.6 s |
+| 16:9 720p **high** | 1280×720 | **1.34 MB** | 0.6 s |
+| 9:16 720p standard | 720×1280 | 0.62 MB | 0.6 s |
+| 21:9 480p standard | 1120×480 | 0.63 MB | 0.5 s |
+| 16:9 1080p high | 1920×1080 | 2.49 MB | 1.4 s |
+| Real photo, 720p standard | 1280×720 | 0.96 MB | 2.0 s |
+| Real photo, 720p **high** | 1280×720 | **1.64 MB** | 1.4 s |
+
+Every requested dimension came back exactly. The bitrate tiers are genuinely distinct —
+1.7× more data on identical content — so that control is real, not decorative.
+
+**Measured bitrate lands ~60% of target.** Expected: a slow camera move across a still
+has enormous frame-to-frame redundancy, so VBR spends well under the ceiling. The
+setting is a ceiling, not a quota, and the UI should describe it that way rather than
+promising an exact number.
+
+**Risk 6 is retired.** 1080p encodes in 1.4s, far inside budget, so the 30s ceiling
+stands and no resolution tier needs dropping.
+
+---
+
 ### J.7 Default provider — unchanged
 
 `CinematicProvider` remains the shipped default, exactly as approved: real AI still (Pollinations FLUX — verified working, keyless, watermark-free, 3.1s) → real eased camera move → real H.264 encode honouring all four settings. It has no key, no quota, no sunset date, and it is what the judge's live link will run on.
@@ -474,6 +518,7 @@ Commit after every phase, interleaved with the `.agent-logs/` entries the hooks 
 | 10 | **Sora API dies 2026-09-24, six days out** | High | Never the deployed default; `OPENAI_API_KEY` is never set in Vercel; registry falls through to the free engine when unconfigured. Product is unaffected on the 25th. |
 | 11 | **`seconds` contract is genuinely uncertain** | Medium | Resolved by a zero-cost 400 probe before any paid call, not by guessing. Discovered values recorded in `docs/PROVIDERS.md`. |
 | 12 | **Sora download URLs expire in ~1 hour** | High | Artifact streamed into Supabase Storage on completion; history always points at our URL, never OpenAI's. |
+| 14 | **Image host blocks browser-origin requests** | High | **Already hit and solved in Phase 2.** Pollinations 403s any request carrying an `Origin`. Stills are fetched server-side and re-served same-origin, which also avoids canvas tainting. Any replacement image provider must be assumed to behave the same way. |
 | 13 | **API key leaking into repo, logs, or client bundle** | High | `server-only` module boundary, redaction in error paths, host allow-list, `.env*` gitignored, plus a unit test that greps the tree for key-shaped strings and fails the suite. |
 
 ---
