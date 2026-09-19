@@ -126,7 +126,14 @@ describe('staleness sweep', () => {
     expect(isStale(at('failed', old), NOW)).toBe(false)
   })
 
-  it('does not sweep a job that never started beating', () => {
+  it('sweeps a job that never started, aged from creation', () => {
+    // A tab that died between create and render leaves no heartbeat at all.
+    // Without this the row sits in "queued" forever and reads as broken.
+    expect(isStale({ ...at('queued', null), createdAt: old }, NOW)).toBe(true)
+    expect(isStale({ ...at('queued', null), createdAt: fresh }, NOW)).toBe(false)
+  })
+
+  it('still ignores a job with neither heartbeat nor creation time', () => {
     expect(isStale(at('queued', null), NOW)).toBe(false)
   })
 

@@ -141,12 +141,16 @@ export function reduce(
 }
 
 export function isStale(
-  gen: Pick<Generation, 'status' | 'heartbeatAt'>,
+  gen: Pick<Generation, 'status' | 'heartbeatAt'> & { createdAt?: string },
   now: Date = new Date(),
 ): boolean {
   if (isTerminal(gen.status)) return false
-  if (!gen.heartbeatAt) return false
-  return now.getTime() - new Date(gen.heartbeatAt).getTime() > STALE_AFTER_MS
+  // A job that never started has no heartbeat, so age from creation instead.
+  // Otherwise a tab that died between create and render leaves a row stuck in
+  // "queued" forever, which reads as a broken record rather than a failure.
+  const since = gen.heartbeatAt ?? gen.createdAt
+  if (!since) return false
+  return now.getTime() - new Date(since).getTime() > STALE_AFTER_MS
 }
 
 /** Human-facing copy for known failure codes. Unknown codes fall back to the raw message. */

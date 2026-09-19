@@ -130,7 +130,7 @@ export function Composer({
 
       {/* Camera move — the signature control. */}
       <div>
-        <Label hint={`${motions.length} moves`}>Camera</Label>
+        <Label hint={`${motions.length} moves`}>Camera motion</Label>
         <button
           type="button"
           onClick={() => setMotionOpen((v) => !v)}

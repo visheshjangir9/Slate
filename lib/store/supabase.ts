@@ -173,12 +173,14 @@ export class SupabaseGenerationStore implements GenerationStore {
 
   async sweepStale(now: Date = new Date()): Promise<number> {
     const cutoff = new Date(now.getTime() - STALE_AFTER_MS).toISOString()
+    // Two shapes are stale: a running job that stopped heart-beating, and one
+    // that never started at all (no heartbeat), which is aged from creation.
+    // Filtering on heartbeat_at alone left never-started rows stuck forever.
     const { data, error } = await supabase()
       .from(TABLE)
       .select('*')
       .in('status', ['queued', 'generating'])
-      .lt('heartbeat_at', cutoff)
-      .not('heartbeat_at', 'is', null)
+      .or(`heartbeat_at.lt.${cutoff},and(heartbeat_at.is.null,created_at.lt.${cutoff})`)
     if (error) boom('sweep-select', error)
 
     let n = 0

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { IMAGE_MENU, PRIMARY_NAV, VIDEO_MENU, type MegaMenu } from './nav'
 import { Wordmark } from './Wordmark'
+import { RenderIndicator } from './RenderIndicator'
 
 function MegaPanel({ menu, onNavigate }: { menu: MegaMenu; onNavigate: () => void }) {
   return (
@@ -125,6 +126,7 @@ export function TopBar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <RenderIndicator />
           {/* Real search: submits to Assets, which filters the actual library. */}
           <form
             role="search"

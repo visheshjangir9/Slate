@@ -1,17 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  DEFAULT_FPS, bitrateFor, dimensionsFor, drawFrame, applyVignette,
-  encodeVideo, frameCount, getMotion, hasWebCodecs,
-} from '@/lib/engine'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { ASPECT_RATIOS, RESOLUTIONS } from '@/lib/engine/types'
 import type { AspectRatio, Bitrate, MotionId, Resolution } from '@/lib/engine/types'
 import { MOTION_IDS } from '@/lib/engine/motion'
 import type { Generation } from '@/lib/generation/types'
-import { STILL_MODEL } from '@/lib/providers/cinematic'
 import * as api from './api'
 import { ApiError, type Catalog, type CreateInput } from './api'
+import { generationManager, type RunState } from './generationManager'
+
+export type { RunState } from './generationManager'
 
 export interface ComposerState {
   prompt: string
@@ -36,21 +34,12 @@ export const DEFAULT_COMPOSER: ComposerState = {
   bitrate: 'standard',
 }
 
-/** Live pipeline feedback for the job currently rendering in this tab. */
-export interface RunState {
-  id: string
-  stage: 'image' | 'render' | 'encode' | 'upload'
-  progress: number
-}
-
-const STAGE_FLOOR: Record<RunState['stage'], number> = {
-  image: 0, render: 25, encode: 40, upload: 92,
-}
-
 /**
  * Hydrate the composer from URL params so Explore and the Motion Library can
- * hand real parameters to Create Video with a plain link -- shareable, and no
- * cross-route store to keep in sync.
+ * hand real parameters to Create Video with a plain link.
+ *
+ * Validated against the static enums, not the fetched catalogue: the catalogue
+ * is null at mount, so validating against it silently dropped every value.
  */
 export function composerFromParams(params: URLSearchParams | null): Partial<ComposerState> {
   if (!params) return {}
@@ -58,11 +47,9 @@ export function composerFromParams(params: URLSearchParams | null): Partial<Comp
   const prompt = params.get('prompt')
   if (prompt && prompt.trim().length >= 3) out.prompt = prompt.slice(0, 2000)
 
-  // Validated against the static enums, not the fetched catalogue: the catalogue
-  // is still null at mount, so validating against it silently dropped every
-  // value here.
   const motion = params.get('motion')
   if (motion && (MOTION_IDS as string[]).includes(motion)) out.motion = motion as MotionId
+
   const dur = Number(params.get('duration'))
   if (Number.isInteger(dur) && dur >= 4 && dur <= 30) out.durationS = dur
 
@@ -71,34 +58,34 @@ export function composerFromParams(params: URLSearchParams | null): Partial<Comp
     out.aspectRatio = aspect as AspectRatio
   }
   const res = params.get('resolution')
-  if (res && (RESOLUTIONS as readonly string[]).includes(res)) {
-    out.resolution = res as Resolution
-  }
+  if (res && (RESOLUTIONS as readonly string[]).includes(res)) out.resolution = res as Resolution
+
   const br = params.get('bitrate')
   if (br === 'standard' || br === 'high') out.bitrate = br
   return out
 }
 
+const newestFirst = (a: Generation, b: Generation) =>
+  a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0
+
 export function useStudio(initial?: Partial<ComposerState>) {
   const [catalog, setCatalog] = useState<Catalog | null>(null)
   const [composer, setComposer] = useState<ComposerState>({ ...DEFAULT_COMPOSER, ...initial })
-  const [history, setHistory] = useState<Generation[]>([])
+  const [fetched, setFetched] = useState<Generation[]>([])
+  const [deleted, setDeleted] = useState<Set<string>>(() => new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [run, setRun] = useState<RunState | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [notice, setNotice] = useState<string | null>(null)
   const [booting, setBooting] = useState(true)
-  // Captured once: later renders must not re-apply URL params over user edits.
   const initialRef = useRef(initial)
 
-  // One encode at a time: parallel encodes thrash the CPU and make every clip
-  // slower. Extra requests queue instead.
-  const busy = useRef(false)
-  const queue = useRef<Generation[]>([])
-  // Mirrored into state: reading queue.current during render would not
-  // re-render when the queue changes, leaving the Generate button's disabled
-  // state stale.
-  const [queueDepth, setQueueDepth] = useState(0)
+  // The pipeline lives outside React so it survives route changes; this view
+  // only subscribes to it.
+  const snapshot = useSyncExternalStore(
+    generationManager.subscribe,
+    generationManager.getSnapshot,
+    generationManager.getServerSnapshot,
+  )
 
   useEffect(() => {
     let alive = true
@@ -107,11 +94,8 @@ export function useStudio(initial?: Partial<ComposerState>) {
         const [cat, list] = await Promise.all([api.getCatalog(), api.listGenerations()])
         if (!alive) return
         setCatalog(cat)
-        if (initialRef.current) {
-          setComposer((c) => ({ ...c, ...initialRef.current }))
-        }
-        setHistory(list.generations)
-        setSelectedId(list.generations[0]?.id ?? null)
+        if (initialRef.current) setComposer((c) => ({ ...c, ...initialRef.current }))
+        setFetched(list.generations)
       } catch {
         if (alive) setNotice('Could not reach the server. Check your connection and reload.')
       } finally {
@@ -121,130 +105,29 @@ export function useStudio(initial?: Partial<ComposerState>) {
     return () => { alive = false }
   }, [])
 
-  const upsert = useCallback((g: Generation) => {
-    setHistory((prev) => {
-      const i = prev.findIndex((x) => x.id === g.id)
-      if (i === -1) return [g, ...prev]
-      const next = [...prev]
-      next[i] = g
-      return next
-    })
-  }, [])
+  /**
+   * History is derived, not stored: the server list overlaid with whatever the
+   * manager has changed since. No effect needs to copy one into the other, so
+   * a render in flight cannot be lost by a remount.
+   */
+  const history = useMemo(() => {
+    const map = new Map<string, Generation>()
+    for (const g of fetched) map.set(g.id, g)
+    for (const g of Object.values(snapshot.updated)) map.set(g.id, g)
+    return [...map.values()].filter((g) => !deleted.has(g.id)).sort(newestFirst)
+  }, [fetched, snapshot.updated, deleted])
 
-  /** Run one client-executed job: still -> camera move -> encode -> upload. */
-  const runPipeline = useCallback(async (gen: Generation) => {
-    const dims = dimensionsFor(gen.aspectRatio, gen.resolution)
-    const total = frameCount(gen.durationS, DEFAULT_FPS)
-    const bps = bitrateFor(dims, gen.bitrate, DEFAULT_FPS)
-    const preset = getMotion(gen.motion, gen.seed)
+  // The stage shows the pinned generation when it still exists, otherwise the
+  // newest. Derived from state rather than a ref, so it is safe during render
+  // and recovers on its own when the pinned item is deleted.
+  const effectiveSelectedId =
+    selectedId && history.some((g) => g.id === selectedId) ? selectedId : history[0]?.id ?? null
 
-    const mark = async (stage: RunState['stage'], pct: number) => {
-      setRun({ id: gen.id, stage, progress: pct })
-      try {
-        // Doubles as the heartbeat the stale-sweep looks for.
-        const { generation } = await api.patchGeneration(gen.id, {
-          event: 'progress', stage, progress: Math.round(pct),
-        })
-        upsert(generation)
-      } catch { /* a dropped progress ping must not kill the render */ }
-    }
+  const selected = history.find((g) => g.id === effectiveSelectedId) ?? null
+  const run: RunState | null =
+    (effectiveSelectedId && snapshot.runs[effectiveSelectedId]) || null
 
-    try {
-      upsert((await api.patchGeneration(gen.id, { event: 'start' })).generation)
-      setRun({ id: gen.id, stage: 'image', progress: 0 })
-
-      const img = new Image()
-      img.decoding = 'async'
-      img.crossOrigin = 'anonymous'
-      await new Promise<void>((res, rej) => {
-        img.onload = () => res()
-        img.onerror = () => rej(new Error(gen.referenceUrl ? 'reference_unreadable' : 'still_unavailable'))
-        // A reference image replaces the generated still entirely: the camera
-        // move runs over the user's own frame.
-        img.src = gen.referenceUrl ?? api.stillUrl({
-          prompt: gen.prompt, width: dims.width, height: dims.height,
-          seed: gen.seed, model: STILL_MODEL[gen.model] ?? 'flux',
-        })
-      })
-      await mark('render', STAGE_FLOOR.render)
-
-      let lastPing = 0
-      const out = await encodeVideo({
-        dims, fps: DEFAULT_FPS, bitrate: bps, totalFrames: total,
-        renderFrame: (ctx, _i, t) => {
-          drawFrame(ctx, img, dims, preset.at(t))
-          applyVignette(ctx, dims)
-        },
-        onProgress: (done, n) => {
-          const pct = STAGE_FLOOR.encode + (done / n) * (STAGE_FLOOR.upload - STAGE_FLOOR.encode)
-          setRun({ id: gen.id, stage: 'encode', progress: pct })
-          const now = Date.now()
-          if (now - lastPing > 2000) {
-            lastPing = now
-            void api.patchGeneration(gen.id, {
-              event: 'progress', stage: 'encode', progress: Math.round(pct),
-            }).catch(() => {})
-          }
-        },
-      })
-
-      await mark('upload', STAGE_FLOOR.upload)
-
-      // Poster from the midpoint of the move, so it represents the clip.
-      const pc = document.createElement('canvas')
-      pc.width = dims.width; pc.height = dims.height
-      const pctx = pc.getContext('2d')
-      let poster: Blob | null = null
-      if (pctx) {
-        drawFrame(pctx, img, dims, preset.at(0.5))
-        applyVignette(pctx, dims)
-        poster = await new Promise<Blob | null>((r) => pc.toBlob(r, 'image/jpeg', 0.82))
-      }
-
-      const { generation } = await api.uploadArtifact(gen.id, out.blob, poster)
-      upsert(generation)
-      setSelectedId(generation.id)
-    } catch (err) {
-      const code =
-        err instanceof ApiError ? err.code
-        : err instanceof Error && err.message === 'still_unavailable' ? 'still_unavailable'
-        : hasWebCodecs() ? 'encode_failed' : 'encode_unsupported'
-      const message =
-        code === 'still_unavailable' ? 'The image service did not respond. Try again.'
-        : code === 'reference_unreadable' ? 'Your reference image could not be loaded.'
-        : code === 'encode_unsupported' ? 'This browser cannot encode video.'
-        : err instanceof Error ? err.message : 'Rendering failed.'
-      try {
-        const { generation } = await api.patchGeneration(gen.id, {
-          event: 'fail', code, message: message.slice(0, 500),
-        })
-        upsert(generation)
-        setSelectedId(generation.id)
-      } catch { /* already terminal */ }
-    } finally {
-      setRun(null)
-    }
-  }, [upsert])
-
-  const pump = useCallback(async () => {
-    if (busy.current) return
-    const next = queue.current.shift()
-    setQueueDepth(queue.current.length)
-    if (!next) return
-    busy.current = true
-    try { await runPipeline(next) } finally {
-      busy.current = false
-      void pump()
-    }
-  }, [runPipeline])
-
-  const enqueue = useCallback((gen: Generation) => {
-    upsert(gen)
-    setSelectedId(gen.id)
-    queue.current.push(gen)
-    setQueueDepth(queue.current.length)
-    void pump()
-  }, [pump, upsert])
+  const select = useCallback((id: string | null) => setSelectedId(id), [])
 
   const generate = useCallback(async () => {
     setFieldErrors({}); setNotice(null)
@@ -255,7 +138,8 @@ export function useStudio(initial?: Partial<ComposerState>) {
         referenceUrl: composer.referenceUrl ?? null,
       }
       const { generation } = await api.createGeneration(input)
-      enqueue(generation)
+      setSelectedId(generation.id)
+      generationManager.enqueue(generation)
     } catch (err) {
       if (err instanceof ApiError) {
         setFieldErrors(err.fields ?? {})
@@ -264,25 +148,26 @@ export function useStudio(initial?: Partial<ComposerState>) {
         setNotice('Could not start the generation.')
       }
     }
-  }, [composer, enqueue])
+  }, [composer])
 
   const retry = useCallback(async (id: string) => {
     try {
       const { generation } = await api.retryGeneration(id)
-      enqueue(generation)
+      setSelectedId(generation.id)
+      generationManager.enqueue(generation)
     } catch {
       setNotice('Could not retry that generation.')
     }
-  }, [enqueue])
-
-  const remove = useCallback(async (id: string) => {
-    setHistory((prev) => prev.filter((g) => g.id !== id))
-    setSelectedId((cur) => (cur === id ? null : cur))
-    try { await api.deleteGeneration(id) } catch { setNotice('Could not delete that generation.') }
   }, [])
 
-  /** Reload the composer with a past job's exact settings. */
-  const reuse = useCallback((g: Generation) => {
+  const remove = useCallback(async (id: string) => {
+    setDeleted((d) => new Set(d).add(id))
+    if (effectiveSelectedId === id) setSelectedId(null)
+    try { await api.deleteGeneration(id) } catch { setNotice('Could not delete that generation.') }
+  }, [effectiveSelectedId])
+
+  /** Load a past job's exact settings back into the composer. */
+  const remix = useCallback((g: Generation) => {
     setComposer({
       prompt: g.prompt, model: g.model, motion: g.motion, durationS: g.durationS,
       aspectRatio: g.aspectRatio, resolution: g.resolution, bitrate: g.bitrate,
@@ -290,12 +175,15 @@ export function useStudio(initial?: Partial<ComposerState>) {
     })
   }, [])
 
-  const selected = history.find((g) => g.id === selectedId) ?? null
+  const cancel = useCallback((id: string) => generationManager.cancel(id), [])
+  const cancelAll = useCallback(() => generationManager.cancelAll(), [])
 
   return {
-    catalog, composer, setComposer, history, selected, selectedId, setSelectedId,
+    catalog, composer, setComposer,
+    history, selected, selectedId: effectiveSelectedId, setSelectedId: select,
     run, fieldErrors, notice, setNotice, booting,
-    generate, retry, remove, reuse,
-    isRunning: run !== null || queueDepth > 0,
+    generate, retry, remove, reuse: remix, cancel, cancelAll,
+    pending: snapshot.pending,
+    isRunning: snapshot.pending.length > 0,
   }
 }

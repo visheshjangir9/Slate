@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { ReadonlyURLSearchParams } from 'next/navigation'
 import { composerFromParams, useStudio } from '@/lib/client/useStudio'
+import { useUnloadGuard } from '@/lib/client/useUnloadGuard'
 import { Composer } from './Composer'
 import { HistoryRail } from './HistoryRail'
 import { Stage } from './Stage'
@@ -15,6 +16,7 @@ export function CreateVideo({ params }: { params: ReadonlyURLSearchParams | null
     [],
   )
   const s = useStudio(initial)
+  useUnloadGuard()
   const [sheetOpen, setSheetOpen] = useState(false)
 
   return (
