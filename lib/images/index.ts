@@ -1,12 +1,17 @@
 import 'server-only'
 import { cloudflare } from './cloudflare'
+import { openaiImages } from './openai'
 import { pollinations } from './pollinations'
 import type { StillFailure, StillRequest, StillResult } from './types'
 
 export type { StillFailure, StillRequest, StillResult } from './types'
 
-/** Tried in order. Keyless first; configured fallbacks after. */
-const CHAIN = [pollinations, cloudflare]
+/**
+ * Tried in order. OpenAI is primary: it is rate-limit stable and produces no
+ * watermark. The keyless service is now only a fallback for when no key is
+ * configured, since it rate limits by IP and degrades under load.
+ */
+const CHAIN = [openaiImages, cloudflare, pollinations]
 
 /**
  * Budget is deliberately tight. A successful fetch is usually 3-6s and slow
