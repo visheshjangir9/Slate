@@ -76,6 +76,13 @@ export const patchGeneration = (id: string, body: Record<string, unknown>) =>
     body: JSON.stringify(body),
   }).then(json<{ generation: Generation }>)
 
+/** Kick off a server-side render. Resolves when the server finishes the job. */
+export const renderGeneration = (id: string) =>
+  fetch(`/api/generations/${id}/render`, { method: 'POST' }).then(json<{ generation: Generation }>)
+
+export const getGeneration = (id: string) =>
+  fetch(`/api/generations/${id}`).then(json<{ generation: Generation }>)
+
 export const retryGeneration = (id: string) =>
   fetch(`/api/generations/${id}/retry`, { method: 'POST' }).then(
     json<{ generation: Generation; execution: string }>,

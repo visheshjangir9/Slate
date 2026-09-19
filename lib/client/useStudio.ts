@@ -137,9 +137,9 @@ export function useStudio(initial?: Partial<ComposerState>) {
         prompt: composer.prompt.trim(),
         referenceUrl: composer.referenceUrl ?? null,
       }
-      const { generation } = await api.createGeneration(input)
+      const { generation, execution } = await api.createGeneration(input)
       setSelectedId(generation.id)
-      generationManager.enqueue(generation)
+      generationManager.enqueue(generation, execution === 'server' ? 'server' : 'client')
     } catch (err) {
       if (err instanceof ApiError) {
         setFieldErrors(err.fields ?? {})
@@ -152,9 +152,9 @@ export function useStudio(initial?: Partial<ComposerState>) {
 
   const retry = useCallback(async (id: string) => {
     try {
-      const { generation } = await api.retryGeneration(id)
+      const { generation, execution } = await api.retryGeneration(id)
       setSelectedId(generation.id)
-      generationManager.enqueue(generation)
+      generationManager.enqueue(generation, execution === 'server' ? 'server' : 'client')
     } catch {
       setNotice('Could not retry that generation.')
     }

@@ -39,6 +39,7 @@ export const openaiImages: ImageProvider = {
         model: 'gpt-image-1',
         prompt: req.prompt,
         size: nearestSize(req.width, req.height),
+        quality: req.quality ?? 'medium',
         n: 1,
       }),
     })

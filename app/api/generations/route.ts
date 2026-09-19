@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server'
 import { ZodError } from 'zod'
 import { createGenerationSchema, listQuerySchema, randomSeed } from '@/lib/generation/schema'
 import type { Generation } from '@/lib/generation/types'
-import { isKnownModel, providerForModel } from '@/lib/providers/registry'
+import { isKnownModel, modelIsAvailable, providerForModel } from '@/lib/providers/registry'
 import { generationStore } from '@/lib/store'
 import { resolveDeviceId } from '@/lib/api/session'
 import { badRequest, fromZod, ok, serverError } from '@/lib/api/respond'
@@ -18,6 +18,12 @@ export async function POST(req: NextRequest) {
     const input = createGenerationSchema.parse(body)
     if (!isKnownModel(input.model)) {
       return badRequest('Unknown model', { model: `"${input.model}" is not a model we offer` })
+    }
+    // Never substitute a different engine for the one that was chosen.
+    if (!modelIsAvailable(input.model)) {
+      return badRequest('That model is not available', {
+        model: `"${input.model}" is not configured in this environment`,
+      })
     }
 
     const provider = providerForModel(input.model)

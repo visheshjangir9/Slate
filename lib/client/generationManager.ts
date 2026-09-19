@@ -100,8 +100,13 @@ class GenerationManager {
     return this.busy || this.queue.length > 0
   }
 
-  enqueue = (gen: Generation): void => {
-    this.queue.push(gen)
+  /**
+   * `execution` decides where the work happens. Server-backed models run
+   * entirely on the server and are polled; only the in-browser engine needs
+   * this tab to stay alive.
+   */
+  enqueue = (gen: Generation, execution: 'client' | 'server' = 'client'): void => {
+    this.queue.push(Object.assign(gen, { __execution: execution }))
     this.publish(gen)
     void this.pump()
   }
@@ -133,11 +138,59 @@ class GenerationManager {
     this.activeId = next.id
     this.commit({})
     try {
-      await this.run(next)
+      const execution = (next as Generation & { __execution?: string }).__execution
+      if (execution === 'server') await this.runServer(next)
+      else await this.run(next)
     } finally {
       this.busy = false
       this.activeId = null
       void this.pump()
+    }
+  }
+
+  /**
+   * Server-backed render. The server owns the whole pipeline, so this only
+   * starts it and follows the row. Progress comes from stages the server
+   * actually wrote -- nothing here is interpolated.
+   */
+  private async runServer(gen: Generation): Promise<void> {
+    const ac = new AbortController()
+    this.aborters.set(gen.id, ac)
+    this.setRun(gen.id, 'image', STAGE_FLOOR.image)
+
+    let polling = true
+    const poll = async () => {
+      while (polling && !ac.signal.aborted) {
+        await new Promise((r) => setTimeout(r, 2500))
+        if (!polling || ac.signal.aborted) break
+        try {
+          const { generation } = await api.getGeneration(gen.id)
+          this.publish(generation)
+          if (generation.status === 'generating' && generation.stage) {
+            this.setRun(gen.id, generation.stage, Math.max(generation.progress, STAGE_FLOOR[generation.stage]))
+          }
+          if (generation.status === 'completed' || generation.status === 'failed') break
+        } catch { /* a dropped poll must not end the job */ }
+      }
+    }
+    const polled = poll()
+
+    try {
+      const { generation } = await api.renderGeneration(gen.id)
+      this.publish(generation)
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : 'render_failed'
+      try {
+        const { generation } = await api.patchGeneration(gen.id, {
+          event: 'fail', code, message: err instanceof Error ? err.message.slice(0, 500) : 'Render failed.',
+        })
+        this.publish(generation)
+      } catch { /* server already marked it */ }
+    } finally {
+      polling = false
+      await polled
+      this.aborters.delete(gen.id)
+      this.clearRun(gen.id)
     }
   }
 

@@ -5,6 +5,12 @@ export interface StillRequest {
   width: number
   height: number
   seed: number
+  /**
+   * 'low' for frames that a video model will animate anyway -- it halves the
+   * wait and the whole render has to fit in one serverless invocation.
+   * 'medium' for stills a user actually keeps.
+   */
+  quality?: 'low' | 'medium'
 }
 
 export interface StillResult {

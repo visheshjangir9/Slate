@@ -19,9 +19,14 @@ const CHAIN = [openaiImages, cloudflare, pollinations]
  * a fast, honest failure with a retry button. Measured: a degraded upstream
  * takes ~40s to fail on its own, so we cut it off first.
  */
+/**
+ * Measured: gpt-image-1 takes ~12s at low quality and ~20s at medium. The old
+ * 22s first attempt was killing OpenAI mid-flight and silently falling through
+ * to the keyless fallback, which is why stills were still coming from it.
+ */
 const ATTEMPTS: { timeoutMs: number; backoffMs: number }[] = [
-  { timeoutMs: 22_000, backoffMs: 0 },
-  { timeoutMs: 8_000, backoffMs: 1_200 },
+  { timeoutMs: 45_000, backoffMs: 0 },
+  { timeoutMs: 15_000, backoffMs: 1_200 },
 ]
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))

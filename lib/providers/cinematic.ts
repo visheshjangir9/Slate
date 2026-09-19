@@ -4,9 +4,8 @@ export const CINEMATIC_MODELS: ModelDescriptor[] = [
   {
     id: 'slate-cinematic-1',
     label: 'Slate Cinematic 1',
-    description: 'AI still at full resolution, driven by a real eased camera move.',
+    description: 'A generated still driven by a real camera move. Renders in your browser.',
     providerId: 'cinematic',
-    badge: 'TOP',
     available: true,
   },
 ]

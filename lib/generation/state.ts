@@ -162,4 +162,11 @@ export const ERROR_COPY: Record<string, string> = {
   provider_unavailable: 'The generation engine is temporarily unreachable.',
   upload_failed: 'The finished video could not be saved.',
   cancelled: 'Generation was cancelled.',
+  provider_unconfigured: 'The video model is not configured in this environment.',
+  provider_unauthorized: 'The video model rejected our credentials.',
+  provider_rate_limited: 'The video model is rate limiting us. Wait a moment, then retry.',
+  provider_failed: 'The video model could not complete this render.',
+  provider_no_credit: 'The LTX account is out of credit. Top it up, or switch to the Slate Cinematic engine.',
+  artifact_not_video: 'The video model returned something that was not playable video.',
+  render_failed: 'The render could not be completed.',
 }
