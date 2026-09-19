@@ -1,4 +1,4 @@
-import { easeInOutSine, easeOutExpo, easeOutQuart, mix, clamp01 } from './easing'
+import { easeInOutCubic, easeInOutSine, easeOutExpo, easeOutQuart, mix, clamp01 } from './easing'
 import type { MotionId, MotionPreset, Transform } from './types'
 
 const DEG = Math.PI / 180
@@ -103,6 +103,18 @@ const SPECS: Record<MotionId, Spec> = {
     label: 'Crane Up',
     description: 'Camera rises while easing back. Reveals scale.',
     at: (t) => T(mix(1.22, 1.12, t, easeOutQuart), 0, mix(0.05, -0.05, t, easeOutQuart)),
+  },
+  crane_down: {
+    label: 'Crane Down',
+    description: 'Camera descends while easing in. The reveal, inverted.',
+    at: (t) => T(mix(1.12, 1.22, t, easeOutQuart), 0, mix(-0.05, 0.05, t, easeOutQuart)),
+  },
+  whip_pan: {
+    label: 'Whip Pan',
+    description: 'Violent lateral snap. Holds, tears across, holds again.',
+    badge: 'NEW',
+    // Wide throw needs deep overscan: 1 + 2*0.09 = 1.18 minimum to stay covered.
+    at: (t) => T(1.24, mix(-0.09, 0.09, t, easeInOutCubic)),
   },
   handheld: {
     label: 'Handheld',

@@ -46,6 +46,8 @@ export type MotionId =
   | 'orbit_left'
   | 'orbit_right'
   | 'crane_up'
+  | 'crane_down'
+  | 'whip_pan'
   | 'handheld'
 
 export interface MotionPreset {
