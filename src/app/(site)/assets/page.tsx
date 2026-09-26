@@ -11,7 +11,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export default async function Page({ searchParams }: Props) {
   await requireUser(withQuery('/assets', await searchParams))
   return (
-    <Suspense fallback={<div className="min-h-[60vh]" />}>
+    <Suspense fallback={<div className="min-h-[100dvh]" />}>
       <AssetsPage />
     </Suspense>
   )

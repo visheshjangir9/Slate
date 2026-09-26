@@ -12,7 +12,7 @@ export const metadata = {
  */
 export default function Page() {
   return (
-    <Suspense fallback={<div className="min-h-[60vh]" />}>
+    <Suspense fallback={<div className="min-h-[100dvh]" />}>
       <ByokPage />
     </Suspense>
   )
