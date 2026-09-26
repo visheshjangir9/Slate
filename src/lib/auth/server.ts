@@ -28,7 +28,10 @@ const cookieBase = {
 }
 
 function publishableKey(): string {
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY
+  const key =
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY
   // Names only. The value is never interpolated into anything.
   if (!key) throw new Error('Missing SUPABASE_PUBLISHABLE_KEY')
   return key
@@ -58,7 +61,13 @@ let verifier: SupabaseClient | null = null
 const verifyClient = () => (verifier ??= authClient())
 
 export const authConfigured = (): boolean =>
-  Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_PUBLISHABLE_KEY && process.env.SUPABASE_SECRET_KEY)
+  Boolean(
+    process.env.SUPABASE_URL &&
+      (process.env.SUPABASE_PUBLISHABLE_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+        process.env.SUPABASE_ANON_KEY) &&
+      process.env.SUPABASE_SECRET_KEY,
+  )
 
 export async function writeSession(session: Session): Promise<void> {
   const jar = await cookies()
