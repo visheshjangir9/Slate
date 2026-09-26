@@ -1,0 +1,457 @@
+@import "tailwindcss";
+
+/*
+  Slate design system.
+
+  Colour follows a 60 / 30 / 10 split:
+    60  foundation  — ground, a warm near-black the media sits on
+    30  interface   — surfaces and hairlines that hold controls
+    10  signal      — tungsten orange, reserved for the primary action,
+                      the active state and live work. Never decoration.
+
+  Every text token clears WCAG AA (4.5:1) on every surface it is used on:
+    ink 17.5 · ink-2 11.3 · ink-3 6.6 · ink-4 4.9 · signal 8.4 (on ground)
+  Text on the signal fill is ground-black at 8.4:1.
+
+  Type is three voices:
+    display  Bricolage Grotesque — editorial headlines, discovery surfaces
+    sans     Geist — everything you read or operate in the workspace
+    mono     Geist Mono — technical values: dimensions, seconds, bitrates
+*/
+@theme {
+  --color-ground:      #0b0b0c;
+  --color-surface:     #141416;
+  --color-surface-2:   #1b1b1e;
+  --color-surface-3:   #242428;
+
+  --color-line:        #2a2a2f;
+  --color-line-strong: #3d3d44;
+
+  --color-ink:         #f4f1ec;
+  --color-ink-2:       #c9c3bb;
+  --color-ink-3:       #9a948c;
+  --color-ink-4:       #88827b;
+
+  --color-signal:      #ff8a3d;
+  --color-signal-hi:   #ffa266;
+  --color-signal-dim:  #7a4420;
+  --color-live:        #6fdc97;
+  --color-danger:      #ff6f61;
+  --color-success:     #6fdc97;
+
+  /* Legacy alias: older components say "accent" for the signal colour. */
+  --color-accent:      #ff8a3d;
+  --color-accent-dim:  #7a4420;
+
+  --radius-card: 6px;
+  --radius-ctl:  6px;
+
+  --ease-out-slate: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument), ui-serif, Georgia, serif;
+}
+
+html { background: var(--color-ground); }
+html, body { min-height: 100%; }
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--color-signal); color: var(--color-ground); }
+
+/* ---------- Type system ---------- */
+
+/* Editorial display. Tight, heavy, set large. Only on discovery surfaces. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.88;
+  font-variation-settings: "opsz" 96, "wdth" 90;
+}
+.display-xl { font-size: clamp(3.25rem, 9.5vw, 9.5rem); }
+.display-l  { font-size: clamp(2.5rem, 6.4vw, 6rem); }
+.display-m  { font-size: clamp(2rem, 4.2vw, 3.75rem); }
+.display-s  { font-size: clamp(1.5rem, 2.6vw, 2.25rem); line-height: 0.95; letter-spacing: -0.035em; }
+
+/* The one serif moment: an italic word inside a display line. */
+.serif-accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* Small uppercase label. Mono so it reads as metadata, not a heading. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Every technical value is monospaced and tabular. */
+.tabular { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- Surfaces ---------- */
+
+.hairline { border: 1px solid var(--color-line); }
+
+/* Media never sits on a flat void: a faint film grain on stage surfaces. */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Legible caption over any image, without a heavy gradient block. */
+.scrim-b { background: linear-gradient(to top, rgba(11,11,12,0.92) 0%, rgba(11,11,12,0.55) 45%, transparent 100%); }
+.scrim-t { background: linear-gradient(to bottom, rgba(11,11,12,0.7) 0%, transparent 100%); }
+
+/* Thin horizontal scroller used by filter rows and history strips. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 6px;
+  border: 3px solid var(--color-ground);
+}
+::-webkit-scrollbar-thumb:hover { background: #4a4a52; }
+
+/* In the base layer so a component's own focus treatment can override it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+  }
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes slate-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.rise { animation: slate-rise 220ms var(--ease-out-slate) both; }
+
+@keyframes slate-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+.pulse-dot { animation: slate-pulse 1.6s ease-in-out infinite; }
+
+@keyframes slate-sweep {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+.sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,138,61,0.10), transparent);
+  animation: slate-sweep 1.6s ease-in-out infinite;
+}
+
+/* ---------- Home: identity intro ----------
+   Pure CSS, so it always finishes on its own, even if JavaScript never runs.
+   A tiny inline script on the homepage picks the timeline before first paint:
+     full   first visit: lockup, wordmark exits, clapper opens and claps, shutter
+     short  returning:   the mark claps once, shutter
+     none   reduced motion, skipped, or no script: no intro at all
+   The clap lands at ~1.18s (full) / ~0.34s (short); everything reveals from it. */
+
+.intro { display: none; }
+html[data-intro="full"] .intro,
+html[data-intro="short"] .intro { display: block; }
+
+.intro { position: fixed; inset: 0; z-index: 80; }
+.intro-shutter {
+  position: absolute; left: 0; right: 0; height: 50.2%;
+  background: #0c0c0d;
+}
+.intro-shutter[data-side="top"] { top: 0; }
+.intro-shutter[data-side="bottom"] { bottom: 0; }
+.intro-lockup { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.intro-word { display: inline-block; overflow: hidden; white-space: nowrap; max-width: 12rem; padding-left: 1rem; }
+.intro-arm { transform-box: view-box; transform-origin: 2.4px 7.2px; }
+.intro-flash {
+  position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-signal-hi), transparent);
+  opacity: 0; transform: scaleX(0);
+}
+.intro-skip { position: absolute; right: 1.25rem; bottom: 1.25rem; }
+
+@keyframes intro-in       { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* Wordmark leaves by collapsing its own width, so the mark glides to centre
+   in the same motion rather than jumping there afterwards. */
+@keyframes intro-word-out {
+  from { max-width: 12rem; opacity: 1; transform: none; }
+  to   { max-width: 0; padding-left: 0; opacity: 0; transform: translateX(-10px); }
+}
+/* One hinged arc: lift (easing out), fall accelerating into the hit, a small
+   mechanical recoil, rest. 83% is the hit. */
+@keyframes intro-clap {
+  0%   { transform: rotate(0); animation-timing-function: cubic-bezier(.22,.8,.3,1); }
+  60%  { transform: rotate(-31deg); animation-timing-function: cubic-bezier(.6,0,1,.6); }
+  83%  { transform: rotate(0); animation-timing-function: cubic-bezier(.2,.7,.4,1); }
+  90%  { transform: rotate(-3.5deg); animation-timing-function: cubic-bezier(.5,0,.8,.6); }
+  100% { transform: rotate(0); }
+}
+@keyframes intro-hit      { 0% { transform: none; } 30% { transform: scale(.93) translateY(1px); } 100% { transform: none; } }
+@keyframes intro-flash    { 0% { opacity: 0; transform: scaleX(.1); } 18% { opacity: .85; } 100% { opacity: 0; transform: scaleX(1); } }
+@keyframes intro-lockup-out { to { opacity: 0; transform: scale(1.18); filter: blur(2px); } }
+@keyframes intro-up       { to { transform: translateY(-101%); } }
+@keyframes intro-down     { to { transform: translateY(101%); } }
+/* Opacity is the guarantee: animated visibility is not applied reliably at the end. */
+@keyframes intro-done     { to { visibility: hidden; opacity: 0; pointer-events: none; } }
+@keyframes hero-settle    { from { transform: scale(1.1); filter: brightness(.5); } to { transform: none; filter: none; } }
+@keyframes hero-rise      { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+/* Full timeline (first visit), ~2.8s. Every stage starts before the last one
+   ends, so logo, clap, reveal and hero read as one physical motion:
+     0.00–0.50  lockup establishes
+     0.40–1.00  wordmark exits while the arm starts to lift (from 0.55)
+     1.21       the clap lands: flash, shutter split and hero settle begin here
+     1.21–2.15  shutters travel off; lockup dissolves into the reveal
+     1.80–2.79  headline, copy and caption ease into place */
+html[data-intro="full"] .intro-mark    { animation: intro-in 500ms cubic-bezier(.22,1,.36,1) both, intro-hit 320ms cubic-bezier(.3,.7,.4,1) 1.21s both; }
+html[data-intro="full"] .intro-wordset { animation: intro-in 500ms cubic-bezier(.22,1,.36,1) both; }
+html[data-intro="full"] .intro-word    { animation: intro-word-out 600ms cubic-bezier(.65,0,.35,1) .4s both; }
+html[data-intro="full"] .intro-arm     { animation: intro-clap 800ms linear .55s both; }
+html[data-intro="full"] .intro-flash   { animation: intro-flash 560ms cubic-bezier(.2,.7,.3,1) 1.21s both; }
+html[data-intro="full"] .intro-lockup  { animation: intro-lockup-out 560ms cubic-bezier(.45,0,.55,1) 1.26s forwards; }
+html[data-intro="full"] .intro-shutter[data-side="top"]    { animation: intro-up 920ms cubic-bezier(.7,0,.2,1) 1.21s forwards; }
+html[data-intro="full"] .intro-shutter[data-side="bottom"] { animation: intro-down 920ms cubic-bezier(.7,0,.2,1) 1.21s forwards; }
+html[data-intro="full"] .intro         { animation: intro-done 1ms linear 2.16s forwards; }
+html[data-intro="full"] .hero-media    { animation: hero-settle 1450ms cubic-bezier(.22,1,.36,1) 1.21s both; }
+html[data-intro="full"] .hero-rise     { animation: hero-rise 650ms cubic-bezier(.22,1,.36,1) calc(1.8s + var(--d, 0ms)) both; }
+
+/* Short timeline (returning): the mark claps once and cuts to the page. */
+html[data-intro="short"] .intro-word   { display: none; }
+html[data-intro="short"] .intro-arm    { animation: intro-clap 380ms linear .06s both; }
+html[data-intro="short"] .intro-mark   { animation: intro-hit 200ms ease-out .38s both; }
+html[data-intro="short"] .intro-flash  { animation: intro-flash 300ms ease-out .38s both; }
+html[data-intro="short"] .intro-lockup { animation: intro-lockup-out 300ms cubic-bezier(.5,0,.75,0) .4s forwards; }
+html[data-intro="short"] .intro-shutter[data-side="top"]    { animation: intro-up 520ms cubic-bezier(.76,0,.24,1) .38s forwards; }
+html[data-intro="short"] .intro-shutter[data-side="bottom"] { animation: intro-down 520ms cubic-bezier(.76,0,.24,1) .38s forwards; }
+html[data-intro="short"] .intro        { animation: intro-done 1ms linear .92s forwards; }
+html[data-intro="short"] .hero-media   { animation: hero-settle 1300ms cubic-bezier(.16,1,.3,1) .38s both; }
+html[data-intro="short"] .hero-rise    { animation: hero-rise 640ms cubic-bezier(.16,1,.3,1) calc(.5s + var(--d, 0ms)) both; }
+
+/* ---------- Home: depth and scroll reveal ---------- */
+
+/* Graphite environment for public pages: a near-black foundation with a very
+   slight vertical tonal shift and restrained film grain. No glows, no blobs. */
+.environment {
+  position: relative;
+  isolation: isolate;
+  background-color: #0c0c0d;
+  background-image: linear-gradient(180deg, #0f0f10 0%, #0b0b0c 38%, #0d0d0e 100%);
+}
+.environment::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* A raised plane: one step lighter than the ground, with a hairline top edge
+   catching light. Used for depth around major sections. */
+.plane {
+  background-color: #111113;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045), 0 30px 80px -40px rgba(0,0,0,0.9);
+}
+/* A section band: one tonal step up from the ground, hairline edges. Gives the
+   page gentle contrast shifts between sections without any gradient. */
+.band {
+  background-color: #111113;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045), inset 0 -1px 0 rgba(255,255,255,0.03);
+}
+
+/* A restrained house grade for the local stills: less saturation, a touch
+   less contrast, so the imagery reads photographic rather than synthetic. */
+.graded { filter: saturate(0.8) contrast(0.95) brightness(0.97); }
+
+/* Visible by default; only hidden once JavaScript has measured it off-screen. */
+.reveal { transition: opacity 900ms var(--ease-out-slate), transform 900ms var(--ease-out-slate); transition-delay: var(--d, 0ms); }
+.reveal[data-in="false"] { opacity: 0; transform: translateY(32px); }
+
+@keyframes shot-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.shot-progress { transform-origin: left; animation: shot-progress linear both; }
+
+/* ---------- Hero media rotation ----------
+   The incoming slide fades in over the outgoing one, which stays opaque
+   underneath so the crossfade never dips to black. Both drift the same way:
+   the incoming settles leftward from a slight push-in, the outgoing carries on
+   past centre. An idle slide resets instantly while it is hidden. */
+.hero-slide {
+  position: absolute; inset: 0; z-index: 0; opacity: 0;
+  transform: translate3d(2%, 0, 0) scale(1.06);
+}
+.hero-slide[data-state="active"] {
+  z-index: 2; opacity: 1; transform: none;
+  transition: opacity 1400ms cubic-bezier(.4, 0, .2, 1), transform 7200ms cubic-bezier(.22, .61, .36, 1);
+}
+.hero-slide[data-state="prev"] {
+  z-index: 1; opacity: 1; transform: translate3d(-1.2%, 0, 0) scale(1.03);
+  transition: transform 7200ms cubic-bezier(.3, 0, .7, 1);
+}
+
+/* Text-safe grade. The media itself is graded down toward the headline, then
+   eased back to full strength across the frame, so the typography side reads
+   as part of the grade, not a card laid over the picture. Measured on the four
+   hero stills over the left 38%: about a quarter darker, detail contrast over
+   a third lower. Contrast is reduced *before* brightness: reduced after, it
+   lifts the shadows and a dark frame barely darkens at all. Phones: the
+   headline spans the base, so the grade rises from the bottom instead. */
+.hero-grade {
+  position: absolute; inset: 0; pointer-events: none;
+  -webkit-backdrop-filter: contrast(.9) brightness(.72) saturate(.55);
+  backdrop-filter: contrast(.9) brightness(.72) saturate(.55);
+  --grade: linear-gradient(0deg, #000 0%, #000 24%, rgb(0 0 0 / .6) 44%, rgb(0 0 0 / .2) 58%, transparent 70%);
+  -webkit-mask-image: var(--grade); mask-image: var(--grade);
+}
+@media (min-width: 1024px) {
+  .hero-grade {
+    --grade: linear-gradient(90deg, #000 0%, #000 34%, rgb(0 0 0 / .72) 44%, rgb(0 0 0 / .38) 53%, rgb(0 0 0 / .12) 62%, transparent 72%);
+  }
+}
+@supports not ((backdrop-filter: brightness(1)) or (-webkit-backdrop-filter: brightness(1))) {
+  .hero-grade { background: rgb(8 8 9 / .24); }
+}
+
+/* ---------- Studio: generation state, result reveal, mode change ---------- */
+
+/* Generation field: the output frame's own "developing" state. Everything is
+   confined to the frame; the rest of the Studio stays still.
+   Two moving layers only: a faint glow drifting, and a dot field that a soft
+   wave of light passes through. Image: a circular field, slowly turning, the
+   light spreading out from the centre. Video: a field shaped to the frame,
+   the light sweeping across it like a playhead laying down frames.
+   The static (reduced-motion) look is the base style: a still ring of lit
+   dots over the glow. The animations only move it. */
+@property --gen-r { syntax: "<percentage>"; inherits: false; initial-value: 58%; }
+@property --gen-x { syntax: "<percentage>"; inherits: false; initial-value: 50%; }
+
+.gen-field {
+  position: absolute; inset: 0; overflow: hidden;
+  background: radial-gradient(120% 100% at 50% 45%, #0f1211 0%, #0c0d0d 55%, #0a0a0b 100%);
+  animation: gen-field-in 700ms var(--ease-out-slate) both;
+}
+.gen-field-out { animation: gen-field-out 900ms var(--ease-out-slate) both; }
+@keyframes gen-field-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gen-field-out { from { opacity: 1; } to { opacity: 0; } }
+
+.gen-field-glow {
+  position: absolute; left: 50%; top: 50%; width: 95%; aspect-ratio: 1; translate: -50% -50%;
+  background: radial-gradient(closest-side, rgb(111 220 151 / .13), rgb(111 220 151 / .045) 55%, transparent);
+  animation: gen-glow 12s ease-in-out infinite alternate;
+}
+@keyframes gen-glow {
+  from { transform: translate(-5%, -3%) scale(.95); opacity: .7; }
+  to   { transform: translate(4%, 4%) scale(1.05); opacity: 1; }
+}
+
+.gen-field-disc {
+  position: absolute; left: 50%; top: 50%; height: 76%; aspect-ratio: 1; max-width: 86%; translate: -50% -50%;
+  animation: gen-breathe 7s ease-in-out infinite, gen-turn 150s linear infinite;
+}
+@keyframes gen-breathe { 0%, 100% { scale: 1; opacity: .88; } 50% { scale: 1.02; opacity: 1; } }
+@keyframes gen-turn    { to { rotate: 1turn; } }
+
+.gen-field-dots, .gen-field-wave {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, var(--dot) .8px, transparent 1.25px);
+  background-size: 10px 10px; background-position: center;
+}
+.gen-field-dots {
+  --dot: rgb(236 231 222 / .2);
+  mask-image: radial-gradient(circle closest-side, #000 25%, rgb(0 0 0 / .45) 72%, transparent 100%);
+}
+.gen-field-wave {
+  --dot: rgb(160 234 188 / .85);
+  opacity: .5;
+  mask-image: radial-gradient(circle closest-side,
+    transparent calc(var(--gen-r) - 18%), #000 var(--gen-r), transparent calc(var(--gen-r) + 9%));
+  animation: gen-wave 4.8s cubic-bezier(.4, .1, .3, 1) infinite;
+}
+@keyframes gen-wave {
+  0%   { --gen-r: 4%; opacity: 0; }
+  20%  { opacity: .9; }
+  75%  { opacity: .6; }
+  100% { --gen-r: 104%; opacity: 0; }
+}
+
+/* Video: the field takes the frame's shape and does not turn. */
+.gen-field[data-kind="video"] .gen-field-disc {
+  height: 70%; width: 84%; aspect-ratio: auto; max-width: none;
+  animation: gen-breathe 7s ease-in-out infinite;
+}
+.gen-field[data-kind="video"] .gen-field-dots {
+  mask-image: radial-gradient(closest-side, #000 30%, rgb(0 0 0 / .45) 72%, transparent 100%);
+}
+.gen-field[data-kind="video"] .gen-field-wave {
+  mask-image:
+    linear-gradient(90deg, transparent calc(var(--gen-x) - 16%), #000 var(--gen-x), transparent calc(var(--gen-x) + 3%)),
+    radial-gradient(closest-side, #000 40%, transparent 100%);
+  mask-composite: intersect;
+  animation: gen-sweep 5.6s cubic-bezier(.45, .05, .4, 1) infinite;
+}
+@keyframes gen-sweep {
+  0%   { --gen-x: -8%; opacity: 0; }
+  15%  { opacity: .85; }
+  85%  { opacity: .85; }
+  100% { --gen-x: 108%; opacity: 0; }
+}
+
+/* The finished result develops in rather than cutting on. */
+@keyframes result-in { from { opacity: 0; transform: scale(1.012); filter: blur(6px) brightness(.8); } to { opacity: 1; transform: none; filter: none; } }
+.result-in { animation: result-in 700ms cubic-bezier(.22,1,.36,1) both; }
+
+/* Homepage BYOK: the masked key types in once when the section is revealed.
+   Reduced motion lands straight on the final state (fill: both). */
+.key-type { display: inline-block; white-space: nowrap; }
+.reveal[data-in="true"] .key-type { animation: key-type 1.3s steps(16, end) .35s both; }
+@keyframes key-type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* AI configuration: a connection result arrives without a jolt. */
+@keyframes config-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
+.config-in { animation: config-in 260ms cubic-bezier(.22,1,.36,1) both; }
+
+/* A new prompt idea settles in. */
+@keyframes idea-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.idea-in { animation: idea-in 520ms cubic-bezier(.22,1,.36,1) both; }
+
+/* Switching creation mode: content slides a short way in the direction of travel. */
+@keyframes mode-in-r { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes mode-in-l { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+.mode-in[data-dir="r"] { animation: mode-in-r 340ms cubic-bezier(.22,1,.36,1) both; }
+.mode-in[data-dir="l"] { animation: mode-in-l 340ms cubic-bezier(.22,1,.36,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
