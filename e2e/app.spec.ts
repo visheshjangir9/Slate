@@ -54,7 +54,7 @@ test.describe('landing', () => {
 })
 
 test.describe('every page renders without errors', () => {
-  for (const path of ['/', '/explore', '/motion', '/about', '/byok', '/developers', '/assets', '/studio', '/studio/image', '/studio/motion']) {
+  for (const path of ['/', '/explore', '/motion', '/about', '/byok', '/developers', '/contact', '/assets', '/studio', '/studio/image', '/studio/motion']) {
     test(path, async ({ page }) => {
       const errors = await noConsoleErrors(page)
       const res = await page.goto(path)
@@ -227,6 +227,33 @@ test.describe('BYOK', () => {
     await page.getByRole('button', { name: /All models/ }).click()
     await page.getByRole('button', { name: /Connect your provider/ }).click()
     await expect(page.locator('#byok-provider')).toHaveValue('google')
+  })
+})
+
+test.describe('Contact', () => {
+  test('the intro video waits for the visitor: nothing loads or plays until Play', async ({ page }) => {
+    const videoRequests: string[] = []
+    page.on('request', (r) => { if (r.url().includes('/media/videos/intro.mp4')) videoRequests.push(r.url()) })
+    await page.goto('/contact')
+    const video = page.locator('video[aria-label^="Intro video"]')
+    await expect(video).toHaveAttribute('preload', 'none')
+    await expect(video).toHaveAttribute('poster', /intro\.jpg/)
+    expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true)
+    await page.waitForTimeout(1000)
+    expect(videoRequests).toHaveLength(0)
+    await page.getByRole('button', { name: /Play the intro/ }).click()
+    await expect.poll(() => videoRequests.length).toBeGreaterThan(0)
+    await expect(page.getByRole('button', { name: /^(Mute|Unmute)$/ })).toBeVisible()
+    for (const name of ['Email', 'LinkedIn', 'Instagram', 'GitHub']) {
+      await expect(page.getByRole('link', { name: new RegExp(`^${name}:`) })).toBeVisible()
+    }
+  })
+
+  test('the footer teases the contact page', async ({ page }) => {
+    await page.goto('/about')
+    const link = page.locator('footer a[href="/contact"]')
+    await expect(link).toContainText('Contact me')
+    await expect(link).toContainText('there’s a surprise')
   })
 })
 
