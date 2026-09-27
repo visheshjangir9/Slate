@@ -5,7 +5,7 @@ import { FooterSignIn } from './FooterSignIn'
 
 const LINK = 'text-sm text-ink-2 transition-colors hover:text-ink'
 
-const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
+const COLUMNS: { title: string; links: { label: string; href: string; teaser?: string }[] }[] = [
   {
     title: 'Create',
     links: [
@@ -29,6 +29,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: 'About', href: '/about' },
       { label: 'Developers', href: '/developers' },
+      { label: 'Contact me', href: '/contact', teaser: 'there’s a surprise' },
     ],
   },
 ]
@@ -53,7 +54,16 @@ export function Footer() {
             <ul className="flex flex-col gap-2.5">
               {col.links.map((l) => (
                 <li key={l.href + l.label}>
-                  <Link href={l.href} className={LINK}>{l.label}</Link>
+                  {l.teaser ? (
+                    <Link href={l.href} className={`group ${LINK}`}>
+                      {l.label}
+                      <span className="mt-0.5 block text-[11px] text-ink-4 transition-colors group-hover:text-signal">
+                        ({l.teaser} <span className="teaser-wink">😉</span>)
+                      </span>
+                    </Link>
+                  ) : (
+                    <Link href={l.href} className={LINK}>{l.label}</Link>
+                  )}
                 </li>
               ))}
               {col.title === 'Slate' && <FooterSignIn className={LINK} />}

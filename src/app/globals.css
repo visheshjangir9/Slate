@@ -535,3 +535,41 @@ html[data-intro="short"] .hero-rise    { animation: hero-rise 760ms var(--ease-o
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Contact tiles ----------
+   The tile warms from its logo outward: a soft signal light rises behind the
+   mark, the mark lifts and turns to the accent, the border picks up the tone. */
+.contact-tile { transition: border-color 500ms var(--ease-out-slate), transform 700ms var(--ease-out-slate), box-shadow 700ms var(--ease-out-slate); }
+.contact-tile::before {
+  content: ""; position: absolute; left: 24px; top: 24px; width: 48px; height: 48px; border-radius: 9999px; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255,138,61,.35), transparent); opacity: 0; transform: scale(.6);
+  transition: opacity 600ms var(--ease-out-slate), transform 900ms var(--ease-out-slate);
+}
+.contact-tile:hover, .contact-tile:focus-visible { border-color: rgba(255,138,61,.45); transform: translateY(-4px); box-shadow: 0 24px 60px -30px rgba(0,0,0,.95); }
+.contact-tile:hover::before, .contact-tile:focus-visible::before { opacity: 1; transform: scale(3.2); }
+.contact-logo { position: relative; transition: transform 700ms var(--ease-out-slate), color 400ms, border-color 400ms; }
+.contact-tile:hover .contact-logo, .contact-tile:focus-visible .contact-logo { transform: translateY(-3px) scale(1.06); color: var(--color-signal); border-color: rgba(255,138,61,.5); }
+
+/* ---------- Contact: intro player ----------
+   A soft amber light sits behind the frame; the play button breathes with a
+   ring; controls fade in over a dark base only while they are needed. */
+.intro-glow {
+  position: absolute; inset: -8% -6% -14%; z-index: -1; pointer-events: none;
+  background: radial-gradient(60% 55% at 50% 45%, rgba(255,138,61,.16), rgba(255,138,61,.05) 45%, transparent 72%);
+  filter: blur(20px);
+}
+.intro-cover { background: linear-gradient(180deg, rgba(12,12,13,0) 55%, rgba(12,12,13,.7) 100%); transition: background 400ms var(--ease-out-slate); }
+.intro-play { position: relative; box-shadow: 0 18px 50px -12px rgba(255,138,61,.6); transition: transform 500ms var(--ease-out-slate), box-shadow 500ms var(--ease-out-slate); }
+.intro-play::after {
+  content: ""; position: absolute; inset: -10px; border-radius: 9999px; border: 1.5px solid rgba(255,162,102,.55);
+  animation: intro-ring 2.4s var(--ease-out-slate) infinite;
+}
+@keyframes intro-ring { 0% { transform: scale(.85); opacity: .9; } 100% { transform: scale(1.45); opacity: 0; } }
+.intro-cover:hover .intro-play, .intro-cover:focus-visible .intro-play { transform: scale(1.08); box-shadow: 0 22px 60px -10px rgba(255,138,61,.75); }
+.intro-controls { background: linear-gradient(180deg, transparent, rgba(12,12,13,.82)); transition: opacity 400ms var(--ease-out-slate); }
+@media (hover: none) { .intro-controls { opacity: 1 !important; } }
+
+/* Footer: the Contact me teaser winks on hover. */
+.teaser-wink { display: inline-block; transform-origin: 60% 70%; }
+a:hover .teaser-wink, a:focus-visible .teaser-wink { animation: wink 900ms var(--ease-out-slate); }
+@keyframes wink { 0% { transform: rotate(0) scale(1); } 30% { transform: rotate(-14deg) scale(1.25); } 60% { transform: rotate(10deg) scale(1.1); } 100% { transform: rotate(0) scale(1); } }
