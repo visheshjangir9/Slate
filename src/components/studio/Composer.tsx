@@ -18,7 +18,7 @@ import { ModelPicker } from './ModelPicker'
 import { AiConfigSheet } from './AiConfigSheet'
 import type { ByokTarget } from '@/components/byok/ByokConfigForm'
 import { MotionGrid } from './MotionGrid'
-import { IMAGE_PROMPT_EXAMPLES } from '@/lib/presets'
+import { IMAGE_EXAMPLE_LIST } from '@/lib/presets'
 
 const LTX_DURATIONS = [4, 6, 8] as const
 
@@ -235,56 +235,32 @@ export function Composer({
             <p className="mt-1.5 text-[11px] leading-snug text-ink-3">Your image is the frame; this text labels the clip.</p>
           )}
           {workflow === 'image' ? (
-            !state.prompt ? (
+            !state.prompt && (
               <div className="mt-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">Photo Inspirations</span>
-                  <span className="text-[10px] text-ink-4">click to load</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">Photo inspirations</span>
+                  <span className="text-[10px] text-ink-4">sets prompt and ratio</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  {IMAGE_PROMPT_EXAMPLES.slice(0, 4).map((item) => (
+                  {IMAGE_EXAMPLE_LIST.map((item) => (
                     <button
-                      key={item.id}
+                      key={item.ratio}
                       type="button"
-                      onClick={() => onChange({ ...state, prompt: item.prompt, aspectRatio: item.aspectRatio })}
+                      onClick={() => onChange({ ...state, prompt: item.prompt, aspectRatio: item.ratio })}
                       className="group flex items-center gap-2.5 rounded-card border border-line bg-surface p-1.5 text-left transition-colors duration-150 hover:border-line-strong hover:bg-surface-2"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="h-11 w-11 shrink-0 rounded-[3px] border border-white/10 object-cover"
-                      />
+                      <img src={item.image} alt="" className="h-11 w-11 shrink-0 rounded-[3px] border border-white/10 object-cover" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="truncate text-[12px] font-medium text-ink group-hover:text-signal">
-                            {item.title}
-                          </span>
-                          <span className="shrink-0 rounded bg-surface-2 px-1 py-0.5 font-mono text-[9px] text-ink-4">
-                            {item.aspectRatio}
-                          </span>
+                          <span className="truncate text-[12px] font-medium text-ink group-hover:text-signal">{item.title}</span>
+                          <span className="shrink-0 rounded bg-surface-2 px-1 py-0.5 font-mono text-[9px] text-ink-4">{item.ratio}</span>
                         </div>
                         <p className="line-clamp-1 text-[11px] leading-tight text-ink-3">{item.prompt}</p>
                       </div>
                     </button>
                   ))}
                 </div>
-              </div>
-            ) : (
-              <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto py-1">
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-ink-4">Photos:</span>
-                {IMAGE_PROMPT_EXAMPLES.slice(0, 6).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    title={`${item.title}: ${item.prompt}`}
-                    onClick={() => onChange({ ...state, prompt: item.prompt, aspectRatio: item.aspectRatio })}
-                    className="group relative h-7 w-7 shrink-0 overflow-hidden rounded border border-line transition-colors hover:border-signal"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
-                  </button>
-                ))}
               </div>
             )
           ) : !state.prompt && EXAMPLES[workflow] ? (

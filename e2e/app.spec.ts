@@ -91,6 +91,26 @@ test.describe('Create Image', () => {
     expect(results[0]).not.toBe(results[1])
   })
 
+  test('the example photo follows the aspect ratio; an inspiration sets prompt and ratio', async ({ page }) => {
+    await page.goto('/studio/image')
+    const example = page.locator('section img[src^="/explore/"]').first()
+    const expected: Record<string, string> = {
+      '21:9': 'neon-rain', '16:9': 'pocket-watch', '4:3': 'diner-night', '1:1': 'ceramic-cup', '4:5': 'harbour-portrait', '9:16': 'glass-canyon',
+    }
+    const tile = page.getByRole('button', { name: /^Aspect/ })
+    for (const [ratio, photo] of Object.entries(expected)) {
+      // The picker closes on scroll by design; let any scroll-into-view settle first.
+      await tile.scrollIntoViewIfNeeded()
+      await page.waitForTimeout(250)
+      await tile.click()
+      await page.getByRole('radiogroup', { name: 'Aspect ratio' }).getByRole('radio', { name: new RegExp(`^${ratio}`) }).click()
+      await expect(example).toHaveAttribute('src', new RegExp(photo))
+    }
+    await page.getByRole('button', { name: /Stoneware Mug/ }).click()
+    await expect(page.locator('textarea').first()).toHaveValue(/stoneware mug/)
+    await expect(example).toHaveAttribute('src', /ceramic-cup/)
+  })
+
   test('an unconfigured model is stated, and Generate is disabled', async ({ page }) => {
     await page.addInitScript(() => sessionStorage.setItem('slate_mock_image_unconfigured', '1'))
     await page.goto('/studio/image')

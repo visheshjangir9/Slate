@@ -208,105 +208,45 @@ export const presetToParams = (p: Preset): string =>
 
 export const ALL_PRESETS: Preset[] = [FEATURED, ...RECIPES]
 
-export interface ImagePromptExample {
-  id: string
+/**
+ * The Image studio's example photos: exactly one per aspect ratio, each a
+ * photo whose own shape suits that frame, so an example is never shown
+ * squeezed into a ratio it was not made for (a mug stretched to 21:9).
+ * Each prompt describes its own photo. Examples only: never a result.
+ */
+export interface ImageExample {
+  ratio: AspectRatio
   title: string
   prompt: string
   image: string
-  aspectRatio: AspectRatio
-  keywords: string[]
 }
 
-export const IMAGE_PROMPT_EXAMPLES: ImagePromptExample[] = [
-  {
-    id: 'ceramic-cup',
-    title: 'Ceramic Product',
-    prompt: 'a matte black ceramic cup on polished concrete, soft north light, minimal',
-    image: '/explore/ceramic-cup.jpg',
-    aspectRatio: '1:1',
-    keywords: ['ceramic', 'cup', 'mug', 'concrete', 'minimal', 'product'],
+export const IMAGE_EXAMPLES: Record<AspectRatio, ImageExample> = {
+  '21:9': {
+    ratio: '21:9', title: 'Neon Rain', image: '/explore/neon-rain.jpg',
+    prompt: 'a lone figure on a rain-slicked street at night, neon signage bleeding into the puddles, shallow depth of field',
   },
-  {
-    id: 'editorial-portrait',
-    title: 'Editorial Portrait',
-    prompt: 'editorial portrait of a boxer taping his hands, hard window light, grain',
-    image: '/explore/harbour-portrait.jpg',
-    aspectRatio: '4:5',
-    keywords: ['portrait', 'boxer', 'hands', 'window light', 'grain', 'harbour'],
+  '16:9': {
+    ratio: '16:9', title: 'Pocket Watch', image: '/explore/pocket-watch.jpg',
+    prompt: 'an antique pocket watch on dark velvet, single hard key light, deep shadows',
   },
-  {
-    id: 'brutalist-chapel',
-    title: 'Brutalist Architecture',
-    prompt: 'a brutalist chapel at dawn, one shaft of light through a slit window',
-    image: '/explore/brutalist-chapel.jpg',
-    aspectRatio: '16:9',
-    keywords: ['brutalist', 'chapel', 'shaft of light', 'slit window', 'architecture'],
-  },
-  {
-    id: 'sneaker-plinth',
-    title: 'Sneaker on Plinth',
-    prompt: 'a grey suede sneaker on a sandstone plinth, hard afternoon sun, editorial product',
-    image: '/explore/sneaker-plinth.jpg',
-    aspectRatio: '4:5',
-    keywords: ['sneaker', 'plinth', 'suede', 'sandstone'],
-  },
-  {
-    id: 'lantern-alley',
-    title: 'Lantern Alley',
-    prompt: 'a narrow rain-soaked alley at night, red paper lanterns, wet stone reflecting neon',
-    image: '/explore/alley-night.jpg',
-    aspectRatio: '9:16',
-    keywords: ['alley', 'lanterns', 'neon', 'rain', 'night'],
-  },
-  {
-    id: 'salt-flat',
-    title: 'Salt Flat',
-    prompt: 'cracked salt flats at sunset, hexagonal crust patterns to the horizon, ultra wide',
-    image: '/explore/salt-flat.jpg',
-    aspectRatio: '21:9',
-    keywords: ['salt', 'flats', 'sunset', 'crust'],
-  },
-  {
-    id: 'droplet-macro',
-    title: 'Droplet Macro',
-    prompt: 'a water droplet suspended above rippling water, refracted city lights, macro lens',
-    image: '/explore/droplet-macro.jpg',
-    aspectRatio: '1:1',
-    keywords: ['droplet', 'water', 'macro', 'refraction'],
-  },
-  {
-    id: 'diner-night',
-    title: '3 AM Diner',
+  '4:3': {
+    ratio: '4:3', title: '3 AM Diner', image: '/explore/diner-night.jpg',
     prompt: 'an empty diner at 3am, rain on the window, red neon sign outside, film grain',
-    image: '/explore/diner-night.jpg',
-    aspectRatio: '16:9',
-    keywords: ['diner', '3am', 'neon', 'window'],
   },
-  {
-    id: 'orbit-station',
-    title: 'Orbit Station',
-    prompt: 'an astronaut standing on a space station deck, looking out at a vast blue planet',
-    image: '/explore/orbit-station.jpg',
-    aspectRatio: '16:9',
-    keywords: ['astronaut', 'orbit', 'space', 'station'],
+  '1:1': {
+    ratio: '1:1', title: 'Stoneware Mug', image: '/explore/ceramic-cup.jpg',
+    prompt: 'an off-white stoneware mug on a concrete ledge, warm late sun, soft leaf shadows on the wall, minimal styling',
   },
-  {
-    id: 'ridge-dawn',
-    title: 'Ridge at Dawn',
-    prompt: 'sunrise over a fog-filled valley, pine ridges receding into haze, volumetric light',
-    image: '/explore/ridge-dawn.jpg',
-    aspectRatio: '16:9',
-    keywords: ['ridge', 'dawn', 'sunrise', 'fog', 'valley'],
+  '4:5': {
+    ratio: '4:5', title: 'Harbour Portrait', image: '/explore/harbour-portrait.jpg',
+    prompt: 'a weathered fisherman in an oilskin coat, harbour fog behind him, overcast daylight',
   },
-]
-
-export function matchImagePromptExample(prompt: string): ImagePromptExample | null {
-  const p = prompt.trim().toLowerCase()
-  if (!p) return null
-  return (
-    IMAGE_PROMPT_EXAMPLES.find((ex) => p.includes(ex.prompt.toLowerCase()) || ex.prompt.toLowerCase().includes(p)) ||
-    IMAGE_PROMPT_EXAMPLES.find((ex) => ex.keywords.some((k) => p.includes(k))) ||
-    null
-  )
+  '9:16': {
+    ratio: '9:16', title: 'Glass Canyon', image: '/explore/glass-canyon.jpg',
+    prompt: 'looking straight up a canyon of glass skyscrapers, golden sunset clouds reflected in the facades',
+  },
 }
 
+/** In the order the aspect picker shows them. */
+export const IMAGE_EXAMPLE_LIST: ImageExample[] = (['21:9', '16:9', '4:3', '1:1', '4:5', '9:16'] as AspectRatio[]).map((r) => IMAGE_EXAMPLES[r])
