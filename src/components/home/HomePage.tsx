@@ -15,6 +15,7 @@ import { HeroMedia } from './HeroMedia'
 import { Intro } from './Intro'
 import { Reveal } from './Reveal'
 import { useInView } from './useInView'
+import { spot } from './spot'
 
 const REPO = 'https://github.com/visheshjangir9/Slate'
 
@@ -83,15 +84,15 @@ function SectionHead({ n, eyebrow, title, aside, action }: {
   n: string; eyebrow: string; title: ReactNode; aside?: ReactNode; action?: ReactNode
 }) {
   return (
-    <Reveal>
+    <Reveal variant="head">
       <div className="grid gap-6 border-t border-line pt-8 lg:grid-cols-[1fr_minmax(0,24rem)] lg:items-end">
         <div>
           <p className="eyebrow flex items-center gap-3 text-ink-3">
-            <span className="text-signal">{n}</span><span className="h-px w-8 bg-line-strong" />{eyebrow}
+            <span className="text-signal">{n}</span><span className="rv-bar h-px w-8 bg-line-strong" />{eyebrow}
           </p>
-          <h2 className="display display-l mt-5 [text-wrap:balance]">{title}</h2>
+          <h2 className="rv-title display display-l mt-5 [text-wrap:balance]">{title}</h2>
         </div>
-        <div className="flex flex-col items-start gap-4 lg:items-end lg:text-right">
+        <div className="rv-aside flex flex-col items-start gap-4 lg:items-end lg:text-right">
           {aside && <p className="text-[15px] leading-relaxed text-ink-2">{aside}</p>}
           {action}
         </div>
@@ -156,7 +157,7 @@ function CreateSection() {
         aside="Everything you make is saved to your library the moment it finishes." />
       <div className="mt-12 grid gap-3 lg:grid-cols-12 lg:grid-rows-[minmax(0,22rem)_minmax(0,22rem)]">
         {CREATE.map((c, i) => (
-          <Reveal key={c.href} delay={i * 90}
+          <Reveal key={c.href} delay={i * 110} variant="media"
             className={`min-w-0 ${i === 0 ? 'lg:col-span-7 lg:row-span-2' : 'lg:col-span-5'}`}>
             <Link href={c.href} className={`group relative block overflow-hidden rounded-[4px] border border-line transition-colors
               hover:border-line-strong lg:aspect-auto lg:h-full ${i === 0 ? 'aspect-[4/5] sm:aspect-[4/3.4]' : 'aspect-[4/5] sm:aspect-[16/10]'}`}>
@@ -206,31 +207,37 @@ function ExploreSection() {
       {/* Four columns, two rows. The lead spans 2x2 and takes its height from the
           smaller tiles, so the section is exactly as tall as its content. */}
       <div className="mt-12 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-        <Reveal className="md:col-span-2 lg:row-span-2">
-          <Link href={presetHref(lead)}
-            className="group relative block aspect-[16/10] overflow-hidden rounded-[4px] border border-line hover:border-line-strong lg:aspect-auto lg:h-full">
+        <Reveal className="md:col-span-2 lg:row-span-2" variant="media">
+          <Link href={presetHref(lead)} {...spot}
+            className="spot group relative block aspect-[16/10] overflow-hidden rounded-[4px] border border-line lg:aspect-auto lg:h-full">
             <LiveFrame file={lead.image} motion={lead.motion} aspect={16 / 10} alt={lead.title} longEdge={1200} />
-            <div className="scrim-b absolute inset-x-0 bottom-0 h-2/3" />
-            <div className="absolute left-4 top-4"><Tag tone="neutral" onMedia>{lead.category}</Tag></div>
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
+            <span className="spot-light" /><span className="spot-sheen" />
+            <div className="scrim-b absolute inset-x-0 bottom-0 z-[2] h-2/3" />
+            <div className="absolute left-4 top-4 z-[3]"><Tag tone="neutral" onMedia>{lead.category}</Tag></div>
+            <div className="spot-title absolute inset-x-0 bottom-0 z-[3] p-5 sm:p-7">
               <p className="display display-m">{lead.title}</p>
               <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-ink-2">{lead.note}</p>
-              <Spec className="mt-3 text-ink-2" items={[getMotion(lead.motion).label, `${lead.durationS}s`, lead.aspectRatio]} />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <Spec className="text-ink-2" items={[getMotion(lead.motion).label, `${lead.durationS}s`, lead.aspectRatio]} />
+                <span className="spot-cta items-center gap-1.5 text-[13px] font-medium text-signal">Use recipe <IconArrowRight size={14} /></span>
+              </div>
             </div>
           </Link>
         </Reveal>
         {rest.map((p, i) => (
-          <Reveal key={p.id} delay={80 + i * 70}>
-            <Link href={presetHref(p)}
-              className="group relative block aspect-[4/3] overflow-hidden rounded-[4px] border border-line hover:border-line-strong">
+          <Reveal key={p.id} delay={120 + i * 90} variant="media">
+            <Link href={presetHref(p)} {...spot}
+              className="spot group relative block aspect-[4/3] overflow-hidden rounded-[4px] border border-line">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/explore/${p.image}`} alt={p.title} loading="lazy"
-                className="graded absolute inset-0 h-full w-full bg-surface-2 object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
-              <div className="scrim-b absolute inset-x-0 bottom-0 h-3/5" />
-              <div className="absolute left-3 top-3"><Tag tone="neutral" onMedia>{p.category}</Tag></div>
-              <div className="absolute inset-x-0 bottom-0 p-4">
+                className="graded absolute inset-0 h-full w-full bg-surface-2 object-cover" />
+              <span className="spot-light" /><span className="spot-sheen" />
+              <div className="scrim-b absolute inset-x-0 bottom-0 z-[2] h-3/5" />
+              <div className="absolute left-3 top-3 z-[3]"><Tag tone="neutral" onMedia>{p.category}</Tag></div>
+              <div className="spot-title absolute inset-x-0 bottom-0 z-[3] p-4">
                 <p className="text-[15px] font-semibold leading-tight">{p.title}</p>
                 <p className="tabular mt-1 text-[11px] text-ink-2">{getMotion(p.motion).label} · {p.durationS}s · {p.aspectRatio}</p>
+                <span className="spot-cta mt-2 items-center gap-1 text-[12px] font-medium text-signal">Use recipe <IconArrowRight size={13} /></span>
               </div>
             </Link>
           </Reveal>
@@ -252,7 +259,7 @@ function MotionSection() {
         action={<ButtonLink href="/motion" variant="contrast">Motion Library <IconArrowRight size={14} /></ButtonLink>} />
       <div className="mt-12 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {MOVES.map((m, i) => (
-          <Reveal key={m} delay={i * 80}>
+          <Reveal key={m} delay={i * 100} variant="media">
             <Link href={`/studio/motion?motion=${m}`} className="group block">
               <span className="relative block overflow-hidden rounded-[4px] border border-line group-hover:border-line-strong"
                 style={{ aspectRatio: '3 / 4' }}>

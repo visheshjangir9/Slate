@@ -50,6 +50,7 @@ export function Intro() {
     <div className="intro" aria-label="Slate intro">
       <div className="intro-shutter" data-side="top" />
       <div className="intro-shutter" data-side="bottom" />
+      <div className="intro-glow" />
       <div className="intro-flash" />
       <div className="intro-lockup">
         <span className="intro-mark inline-flex">
