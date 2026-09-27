@@ -72,10 +72,10 @@ async function prompt(page: Page, text: string) {
 }
 
 test.describe('Create Image', () => {
-  test('the empty frame shows no stock photo; each prompt gets its own result', async ({ page }) => {
+  test('shows sample inspiration photo in frame; each prompt gets its own result', async ({ page }) => {
     await page.goto('/studio/image')
-    await expect(page.getByText(/Empty frame/i)).toBeVisible()
-    await expect(page.locator('section img[src^="/explore/"]')).toHaveCount(0)
+    await expect(page.getByText(/Example image · not your result/i)).toBeVisible()
+    await expect(page.locator('section img[src^="/explore/"]').first()).toBeVisible()
 
     const results: string[] = []
     for (const text of ['A red fox asleep in fresh snow', 'A concrete tower in heavy rain']) {
@@ -89,7 +89,6 @@ test.describe('Create Image', () => {
       await page.getByRole('button', { name: 'New', exact: true }).first().click()
     }
     expect(results[0]).not.toBe(results[1])
-    await expect(page.locator('section img[src^="/explore/"]')).toHaveCount(0)
   })
 
   test('an unconfigured model is stated, and Generate is disabled', async ({ page }) => {

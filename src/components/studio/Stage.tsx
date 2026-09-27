@@ -11,7 +11,8 @@ import { imageOutputDims } from '@/lib/images/dims'
 import { downloadHref, fileSize, timecode } from '@/lib/format'
 import type { Workflow } from '@/components/shell/nav'
 import { Button, Spec, Tag, buttonClass } from '@/components/ui/primitives'
-import { IconDownload, IconHistory, IconPlus, IconRemix, IconRefresh } from '@/components/ui/icons'
+import { IconChevronLeft, IconChevronRight, IconDownload, IconHistory, IconPlus, IconRemix, IconRefresh } from '@/components/ui/icons'
+import { IMAGE_PROMPT_EXAMPLES, matchImagePromptExample } from '@/lib/presets'
 import { GenerationField } from './GenerationField'
 import { PromptInspiration } from './PromptInspiration'
 import { MotionPreview } from './MotionPreview'
@@ -145,7 +146,7 @@ export function Stage({
             <PromptInspiration mode={videoMode} image={sourceIsUsers ? composer.referenceUrl ?? null : null}
               onUse={(p) => onUsePrompt?.(p)} />
           ) : (
-            <ContextStage workflow={workflow} composer={composer} source={source} sourceIsUsers={sourceIsUsers} />
+            <ContextStage workflow={workflow} composer={composer} source={source} sourceIsUsers={sourceIsUsers} onUsePrompt={onUsePrompt} />
           )}
         </div>
       )}
@@ -165,10 +166,17 @@ export function Stage({
 
 /** Image and Camera Motion only; Video's empty stage is PromptInspiration. */
 function ContextStage({
-  workflow, composer, source, sourceIsUsers,
-}: { workflow: Workflow; composer: ComposerState; source: HTMLImageElement | null; sourceIsUsers: boolean }) {
+  workflow, composer, source, sourceIsUsers, onUsePrompt,
+}: {
+  workflow: Workflow
+  composer: ComposerState
+  source: HTMLImageElement | null
+  sourceIsUsers: boolean
+  onUsePrompt?: (prompt: string) => void
+}) {
   const aspect = aspectOf(composer)
   const move = getMotion(composer.motion)
+  const [photoIndex, setPhotoIndex] = useState(0)
 
   let media: ReactNode
   let tag: ReactNode
@@ -176,19 +184,56 @@ function ContextStage({
   let line: string
   let facts: string[]
 
+  const matched = workflow === 'image' ? matchImagePromptExample(composer.prompt) : null
+  const activePhoto = matched || IMAGE_PROMPT_EXAMPLES[photoIndex % IMAGE_PROMPT_EXAMPLES.length]
+
   if (workflow === 'image') {
     const d = imageOutputDims(composer.aspectRatio)
-    // Deliberately no photograph: an example picture in the result frame is
-    // too easily read as a result. The frame is empty until a real image exists.
     media = (
-      <div className="absolute inset-0 bg-surface-2">
-        <div className="absolute inset-4 rounded-[4px] border border-dashed border-line-strong sm:inset-6" />
-        <span className="tabular absolute inset-x-0 top-1/2 -translate-y-1/2 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-ink-4">
+      <div className="absolute inset-0 overflow-hidden bg-surface-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          key={activePhoto.image}
+          src={activePhoto.image}
+          alt={activePhoto.title}
+          className="result-in absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30" />
+        <div className="pointer-events-none absolute inset-4 rounded-[4px] border border-white/10 sm:inset-6" />
+        <span className="tabular absolute top-4 right-4 rounded bg-black/60 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-3 backdrop-blur-sm">
           {d.width} × {d.height}
         </span>
+        {/* Photo switcher navigation pill */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1 backdrop-blur-md border border-white/15 shadow-lg">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setPhotoIndex((i) => (i - 1 + IMAGE_PROMPT_EXAMPLES.length) % IMAGE_PROMPT_EXAMPLES.length)
+            }}
+            className="text-ink-3 hover:text-ink transition-colors p-0.5"
+            title="Previous sample photo"
+          >
+            <IconChevronLeft size={13} />
+          </button>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-ink px-1 select-none">
+            {activePhoto.title}
+          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setPhotoIndex((i) => (i + 1) % IMAGE_PROMPT_EXAMPLES.length)
+            }}
+            className="text-ink-3 hover:text-ink transition-colors p-0.5"
+            title="Next sample photo"
+          >
+            <IconChevronRight size={13} />
+          </button>
+        </div>
       </div>
     )
-    tag = <Tag tone="neutral" onMedia>Empty frame · your image appears here</Tag>
+    tag = <Tag tone="neutral" onMedia>Example image · not your result</Tag>
     headline = <>Describe it. <span className="serif-accent text-signal">See it.</span></>
     line = 'GPT Image renders your prompt, cropped to exactly the frame you choose.'
     facts = [`Your frame: ${d.width}×${d.height}`, 'JPEG', 'Saved to History and Assets']
@@ -216,13 +261,50 @@ function ContextStage({
         </div>
       </Frame>
       <div className="shrink-0 border-t border-line px-4 py-3 sm:px-5">
-        <ol className="flex flex-wrap gap-x-5 gap-y-1.5">
-          {facts.map((f, i) => (
-            <li key={f} className="flex items-center gap-2 text-xs text-ink-2">
-              <span className="tabular text-[10px] text-signal">{String(i + 1).padStart(2, '0')}</span>{f}
-            </li>
-          ))}
-        </ol>
+        {workflow === 'image' ? (
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-ink-4">Sample photos:</span>
+              {IMAGE_PROMPT_EXAMPLES.map((item, idx) => {
+                const active = activePhoto.id === item.id
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setPhotoIndex(idx)
+                      onUsePrompt?.(item.prompt)
+                    }}
+                    className={`group relative h-9 w-12 shrink-0 overflow-hidden rounded-[3px] border transition-all ${
+                      active
+                        ? 'border-signal ring-1 ring-signal opacity-100 scale-105'
+                        : 'border-line opacity-50 hover:opacity-100'
+                    }`}
+                    title={`${item.title}: ${item.prompt}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+                  </button>
+                )
+              })}
+            </div>
+            <ol className="flex flex-wrap gap-x-5 gap-y-1.5">
+              {facts.map((f, i) => (
+                <li key={f} className="flex items-center gap-2 text-xs text-ink-2">
+                  <span className="tabular text-[10px] text-signal">{String(i + 1).padStart(2, '0')}</span>{f}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : (
+          <ol className="flex flex-wrap gap-x-5 gap-y-1.5">
+            {facts.map((f, i) => (
+              <li key={f} className="flex items-center gap-2 text-xs text-ink-2">
+                <span className="tabular text-[10px] text-signal">{String(i + 1).padStart(2, '0')}</span>{f}
+              </li>
+            ))}
+          </ol>
+        )}
       </div>
     </>
   )

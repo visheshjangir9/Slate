@@ -45,6 +45,9 @@ export const IconClose = ({ size, ...p }: P) => (
 export const IconChevronDown = ({ size, ...p }: P) => (
   <svg {...base(size)} {...p}><path d="m5 8 5 5 5-5" /></svg>
 )
+export const IconChevronLeft = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}><path d="m12 15-5-5 5-5" /></svg>
+)
 export const IconChevronRight = ({ size, ...p }: P) => (
   <svg {...base(size)} {...p}><path d="m8 5 5 5-5 5" /></svg>
 )

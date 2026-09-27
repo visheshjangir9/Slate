@@ -19,7 +19,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: 'Explore', href: '/explore' },
       { label: 'Motion library', href: '/motion' },
-      { label: 'Model catalogue', href: '/explore#models' },
+      { label: 'Known models', href: '/byok#known' },
       { label: 'Bring your own AI', href: '/byok' },
       { label: 'Your assets', href: '/assets' },
     ],

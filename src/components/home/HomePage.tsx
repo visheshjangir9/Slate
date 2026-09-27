@@ -53,7 +53,7 @@ function Hero() {
         </div>
 
         {/* IMAGINE. and CREATE. sit inside the image; MOVE. breaks out across the frame edge. */}
-        <div className="relative z-10 -mt-[calc(var(--h)*1.74)] grid gap-8 px-3 pb-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:px-8 lg:pb-24">
+        <div className="relative z-10 -mt-[calc(var(--h)*2.74+1.25rem)] sm:-mt-[calc(var(--h)*1.74)] grid gap-8 px-3 pb-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:px-8 lg:pb-24">
           <h1 className="display text-[length:var(--h)] uppercase leading-[0.87] tracking-[-0.05em]">
             <span className="hero-rise block text-ink" style={{ ['--d' as string]: '20ms' }}>Imagine.</span>
             <span className="hero-rise block text-ink" style={{ ['--d' as string]: '90ms' }}>Create.</span>
@@ -123,7 +123,7 @@ function LiveFrame({ file, motion, aspect, alt, longEdge = 900 }: {
   return (
     <div ref={ref} className="absolute inset-0">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/explore/${file}`} alt={alt} loading="lazy" className="graded absolute inset-0 h-full w-full object-cover" />
+      <img src={`/explore/${file}`} alt={alt} loading="lazy" className="graded absolute inset-0 h-full w-full bg-surface-2 object-cover" />
       {img && inView && (
         <div className="graded absolute inset-0">
           <MotionPreview motion={motion} source={img} aspect={aspect} longEdge={longEdge} durationMs={4200}
@@ -165,7 +165,7 @@ function CreateSection() {
                 : c.live
                 ? <LiveFrame file={c.file} motion={c.motion} aspect={i === 0 ? 1.2 : 1.9} alt={c.label} />
                 // eslint-disable-next-line @next/next/no-img-element
-                : <img src={`/explore/${c.file}`} alt="" loading="lazy" className="graded absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />}
+                : <img src={`/explore/${c.file}`} alt="" loading="lazy" className="graded absolute inset-0 h-full w-full bg-surface-2 object-cover transition-transform duration-700 group-hover:scale-[1.03]" />}
               <div className="scrim-b absolute inset-x-0 bottom-0 h-3/4" />
               <div className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-[5px] bg-ground/85 text-ink">
                 <c.Icon size={17} />
@@ -225,7 +225,7 @@ function ExploreSection() {
               className="group relative block aspect-[4/3] overflow-hidden rounded-[4px] border border-line hover:border-line-strong">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/explore/${p.image}`} alt={p.title} loading="lazy"
-                className="graded absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+                className="graded absolute inset-0 h-full w-full bg-surface-2 object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
               <div className="scrim-b absolute inset-x-0 bottom-0 h-3/5" />
               <div className="absolute left-3 top-3"><Tag tone="neutral" onMedia>{p.category}</Tag></div>
               <div className="absolute inset-x-0 bottom-0 p-4">

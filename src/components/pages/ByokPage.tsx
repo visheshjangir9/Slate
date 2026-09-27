@@ -60,6 +60,9 @@ export function ByokPage() {
           <p className="text-ink-3">
             Requests go to your provider, on your account. Slate’s own models ({LIVE_MODELS.map((m) => m.name).join(', ')}) stay separate and are never used in their place.
           </p>
+          <a href="#configure" className={buttonClass('contrast', 'md', 'self-start lg:hidden')}>
+            Configure a provider <IconArrowRight size={14} className="rotate-90" />
+          </a>
         </div>
       </header>
 

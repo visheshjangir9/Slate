@@ -109,7 +109,7 @@ function Account() {
     if (path.startsWith('/sign-in')) return null
     return (
       <Link href={`/sign-in?next=${encodeURIComponent(next)}`}
-        className="flex h-8 items-center px-2 text-[13px] font-medium text-ink-2 transition-colors hover:text-ink">
+        className="hidden h-8 items-center px-2 sm:flex text-[13px] font-medium text-ink-2 transition-colors hover:text-ink">
         Sign In
       </Link>
     )
@@ -154,6 +154,9 @@ export function TopBar() {
   const open = menuAt?.path === path ? menuAt.id : null
   const mobileOpen = mobileAt === path
   const inStudio = path.startsWith('/studio')
+  const onSignIn = path.startsWith('/sign-in') || path.startsWith('/login')
+  const byokEntry = FEATURES_MENU.flatMap((c) => c.items).find((i) => i.emphasis)
+  const guest = useAuth().status === 'guest'
 
   /**
    * The wordmark is Home. From another route, the Link navigates to / and
@@ -228,8 +231,8 @@ export function TopBar() {
         <div className="ml-auto flex items-center gap-2">
           <RenderIndicator />
           <Account />
-          {!inStudio && (
-            <Link href="/studio" className={buttonClass('contrast', 'sm', 'hidden sm:inline-flex')}>Enter Studio</Link>
+          {!inStudio && !onSignIn && (
+            <Link href="/studio" className={buttonClass('contrast', 'sm', 'max-sm:hidden')}>Enter Studio</Link>
           )}
           <button type="button" aria-label={mobileOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileOpen}
             onClick={() => setMobileAt(mobileOpen ? null : path)}
@@ -250,14 +253,15 @@ export function TopBar() {
               {item.label}
             </Link>
           ))}
+          {byokEntry && <MenuEntry item={byokEntry} onNavigate={() => setMobileAt(null)} />}
           <div className="my-2 h-px bg-line" />
-          {FEATURES_MENU.map((col) => (
-            <div key={col.title}>
-              <p className="eyebrow px-3 pb-1 pt-3 text-ink-3">{col.title}</p>
-              {col.items.map((it) => <MenuEntry key={it.label} item={it} onNavigate={() => setMobileAt(null)} />)}
-            </div>
-          ))}
-          {!inStudio && (
+          {guest && !onSignIn && (
+            <Link href={`/sign-in?next=${encodeURIComponent(inStudio ? path : '/studio')}`} onClick={() => setMobileAt(null)}
+              className="block rounded px-3 py-2.5 text-[15px] font-medium text-ink-2">
+              Sign in
+            </Link>
+          )}
+          {!inStudio && !onSignIn && (
             <Link href="/studio" className={buttonClass('contrast', 'lg', 'mt-4 w-full')}>Enter Studio</Link>
           )}
         </nav>

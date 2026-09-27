@@ -207,3 +207,106 @@ export const presetToParams = (p: Preset): string =>
   }).toString()
 
 export const ALL_PRESETS: Preset[] = [FEATURED, ...RECIPES]
+
+export interface ImagePromptExample {
+  id: string
+  title: string
+  prompt: string
+  image: string
+  aspectRatio: AspectRatio
+  keywords: string[]
+}
+
+export const IMAGE_PROMPT_EXAMPLES: ImagePromptExample[] = [
+  {
+    id: 'ceramic-cup',
+    title: 'Ceramic Product',
+    prompt: 'a matte black ceramic cup on polished concrete, soft north light, minimal',
+    image: '/explore/ceramic-cup.jpg',
+    aspectRatio: '1:1',
+    keywords: ['ceramic', 'cup', 'mug', 'concrete', 'minimal', 'product'],
+  },
+  {
+    id: 'editorial-portrait',
+    title: 'Editorial Portrait',
+    prompt: 'editorial portrait of a boxer taping his hands, hard window light, grain',
+    image: '/explore/harbour-portrait.jpg',
+    aspectRatio: '4:5',
+    keywords: ['portrait', 'boxer', 'hands', 'window light', 'grain', 'harbour'],
+  },
+  {
+    id: 'brutalist-chapel',
+    title: 'Brutalist Architecture',
+    prompt: 'a brutalist chapel at dawn, one shaft of light through a slit window',
+    image: '/explore/brutalist-chapel.jpg',
+    aspectRatio: '16:9',
+    keywords: ['brutalist', 'chapel', 'shaft of light', 'slit window', 'architecture'],
+  },
+  {
+    id: 'sneaker-plinth',
+    title: 'Sneaker on Plinth',
+    prompt: 'a grey suede sneaker on a sandstone plinth, hard afternoon sun, editorial product',
+    image: '/explore/sneaker-plinth.jpg',
+    aspectRatio: '4:5',
+    keywords: ['sneaker', 'plinth', 'suede', 'sandstone'],
+  },
+  {
+    id: 'lantern-alley',
+    title: 'Lantern Alley',
+    prompt: 'a narrow rain-soaked alley at night, red paper lanterns, wet stone reflecting neon',
+    image: '/explore/alley-night.jpg',
+    aspectRatio: '9:16',
+    keywords: ['alley', 'lanterns', 'neon', 'rain', 'night'],
+  },
+  {
+    id: 'salt-flat',
+    title: 'Salt Flat',
+    prompt: 'cracked salt flats at sunset, hexagonal crust patterns to the horizon, ultra wide',
+    image: '/explore/salt-flat.jpg',
+    aspectRatio: '21:9',
+    keywords: ['salt', 'flats', 'sunset', 'crust'],
+  },
+  {
+    id: 'droplet-macro',
+    title: 'Droplet Macro',
+    prompt: 'a water droplet suspended above rippling water, refracted city lights, macro lens',
+    image: '/explore/droplet-macro.jpg',
+    aspectRatio: '1:1',
+    keywords: ['droplet', 'water', 'macro', 'refraction'],
+  },
+  {
+    id: 'diner-night',
+    title: '3 AM Diner',
+    prompt: 'an empty diner at 3am, rain on the window, red neon sign outside, film grain',
+    image: '/explore/diner-night.jpg',
+    aspectRatio: '16:9',
+    keywords: ['diner', '3am', 'neon', 'window'],
+  },
+  {
+    id: 'orbit-station',
+    title: 'Orbit Station',
+    prompt: 'an astronaut standing on a space station deck, looking out at a vast blue planet',
+    image: '/explore/orbit-station.jpg',
+    aspectRatio: '16:9',
+    keywords: ['astronaut', 'orbit', 'space', 'station'],
+  },
+  {
+    id: 'ridge-dawn',
+    title: 'Ridge at Dawn',
+    prompt: 'sunrise over a fog-filled valley, pine ridges receding into haze, volumetric light',
+    image: '/explore/ridge-dawn.jpg',
+    aspectRatio: '16:9',
+    keywords: ['ridge', 'dawn', 'sunrise', 'fog', 'valley'],
+  },
+]
+
+export function matchImagePromptExample(prompt: string): ImagePromptExample | null {
+  const p = prompt.trim().toLowerCase()
+  if (!p) return null
+  return (
+    IMAGE_PROMPT_EXAMPLES.find((ex) => p.includes(ex.prompt.toLowerCase()) || ex.prompt.toLowerCase().includes(p)) ||
+    IMAGE_PROMPT_EXAMPLES.find((ex) => ex.keywords.some((k) => p.includes(k))) ||
+    null
+  )
+}
+
