@@ -6,8 +6,6 @@
 
 Write a prompt, choose a model and a camera move, and get a finished, downloadable shot, all in one workspace.
 
-**[Live demo → slate-tawny-one.vercel.app](https://slate-tawny-one.vercel.app)**
-
 ![Slate homepage](docs/screenshot-home.jpg)
 
 </div>
@@ -182,5 +180,3 @@ npx tsc --noEmit    # type check
 **Vishesh Jangir**, built as a software engineering assignment.
 
 [Email](mailto:visheshjangir026@gmail.com) · [LinkedIn](https://www.linkedin.com/in/vishesh-jangir-274969291/) · [GitHub](https://github.com/visheshjangir9) · [Instagram](https://www.instagram.com/vedicaai/)
-
-Say hello on the [contact page](https://slate-tawny-one.vercel.app/contact) too. There's a short intro video there.
