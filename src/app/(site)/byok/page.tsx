@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
 import { ByokPage } from '@/components/pages/ByokPage'
+import { pageMetadata } from '@/lib/metadata'
 
-export const metadata = {
-  title: 'Bring your own AI — Slate',
-  description: 'Connect a compatible AI provider and use its models inside Slate. Your key stays private to you.',
-}
+export const metadata = pageMetadata({
+  title: 'Bring your own AI',
+  description: 'Connect your own Google, OpenAI or OpenRouter key and use models like Google Veo inside Slate. Your key stays in your browser tab and is never stored.',
+  path: '/byok',
+})
 
 /**
  * Public: anyone can read how Bring your own AI works. Configuring requires

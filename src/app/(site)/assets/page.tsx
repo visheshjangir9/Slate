@@ -2,8 +2,14 @@ import { Suspense } from 'react'
 import { requireUser } from '@/lib/auth/guard'
 import { withQuery } from '@/lib/auth/next'
 import { AssetsPage } from '@/components/pages/AssetsPage'
+import { pageMetadata } from '@/lib/metadata'
 
-export const metadata = { title: 'Assets — Slate' }
+export const metadata = pageMetadata({
+  title: 'Your assets',
+  description: 'Every image and video you have made with Slate, ready to download, retry or remix.',
+  path: '/assets',
+  noindex: true,
+})
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> }
 
