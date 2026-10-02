@@ -10,7 +10,8 @@
                       the active state and live work. Never decoration.
 
   Every text token clears WCAG AA (4.5:1) on every surface it is used on:
-    ink 17.5 · ink-2 11.3 · ink-3 6.6 · ink-4 4.9 · signal 8.4 (on ground)
+    ink 17.5 · ink-2 11.3 · ink-3 6.6 · ink-4 5.8 · signal 8.4 (on ground)
+  and ink-4, the faintest, still clears 4.6:1 on the lightest surface (surface-3).
   Text on the signal fill is ground-black at 8.4:1.
 
   Type is three voices:
@@ -30,7 +31,7 @@
   --color-ink:         #f4f1ec;
   --color-ink-2:       #c9c3bb;
   --color-ink-3:       #9a948c;
-  --color-ink-4:       #88827b;
+  --color-ink-4:       #918b84;
 
   --color-signal:      #ff8a3d;
   --color-signal-hi:   #ffa266;
@@ -573,3 +574,27 @@ html[data-intro="short"] .hero-rise    { animation: hero-rise 760ms var(--ease-o
 .teaser-wink { display: inline-block; transform-origin: 60% 70%; }
 a:hover .teaser-wink, a:focus-visible .teaser-wink { animation: wink 900ms var(--ease-out-slate); }
 @keyframes wink { 0% { transform: rotate(0) scale(1); } 30% { transform: rotate(-14deg) scale(1.25); } 60% { transform: rotate(10deg) scale(1.1); } 100% { transform: rotate(0) scale(1); } }
+
+/* ---------- Legal pages (privacy, terms) ----------
+   Readable prose on the ground: body in ink-2 (11.3:1), emphasis in ink. */
+.legal ul { list-style: disc; padding-left: 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
+.legal li::marker { color: var(--color-ink-3); }
+.legal strong { color: var(--color-ink); font-weight: 600; }
+.legal a { color: var(--color-ink); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--color-line-strong); }
+.legal a:hover { color: var(--color-signal); text-decoration-color: var(--color-signal); }
+.legal code { font-family: var(--font-mono); font-size: .85em; color: var(--color-ink); background: var(--color-surface-2); padding: .1em .35em; border-radius: 3px; }
+.legal table { width: 100%; border-collapse: collapse; font-size: 14px; display: block; overflow-x: auto; }
+.legal th { text-align: left; font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--color-ink-3); }
+.legal th, .legal td { padding: .65rem .75rem .65rem 0; border-bottom: 1px solid var(--color-line); vertical-align: top; }
+
+/* ---------- Accessibility ---------- */
+
+/* Skip link: hidden until focused, then the first thing a keyboard user sees. */
+.skip-link {
+  position: fixed; left: 12px; top: 12px; z-index: 100;
+  transform: translateY(-160%);
+  background: var(--color-ink); color: var(--color-ground);
+  padding: .6rem 1rem; border-radius: var(--radius-ctl); font-size: 14px; font-weight: 600;
+  transition: transform 150ms var(--ease-out-slate);
+}
+.skip-link:focus-visible { transform: none; }

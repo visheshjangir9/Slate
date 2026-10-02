@@ -7,7 +7,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="environment flex min-h-dvh flex-col">
       <TopBar />
-      <main className="flex-1">{children}</main>
+      <main id="main" className="flex-1">{children}</main>
       <Footer />
     </div>
   )
