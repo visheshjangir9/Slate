@@ -76,8 +76,28 @@ async function post(path: string, body?: unknown): Promise<{ ok: true } | { ok: 
   }
 }
 
-export const signIn = (email: string, password: string) => post('/api/auth/login', { email, password })
-export const signUp = (email: string, password: string) => post('/api/auth/signup', { email, password })
+/**
+ * Bot-protection fields sent with the form (see lib/security/bot.ts):
+ * `website` is the hidden honeypot, always empty for a person, and
+ * `formToken` the signed timestamp from /api/auth/form-token.
+ */
+export interface FormGuard { website: string; formToken: string | null }
+
+export const signIn = (email: string, password: string, guard?: FormGuard) =>
+  post('/api/auth/login', { email, password, ...guard })
+export const signUp = (email: string, password: string, guard?: FormGuard) =>
+  post('/api/auth/signup', { email, password, ...guard })
+
+/** A fresh signed form token, or null if it could not be fetched (the server then explains). */
+export async function fetchFormToken(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/auth/form-token', { cache: 'no-store' })
+    if (!res.ok) return null
+    return ((await res.json()) as { token?: string }).token ?? null
+  } catch {
+    return null
+  }
+}
 
 /**
  * Sign out, then hard-navigate to the public homepage. A full reload is

@@ -54,3 +54,6 @@ __pycache__/
 # Playwright
 /test-results
 /playwright-report
+
+# ...except the template, which holds no values
+!.env.example

@@ -57,13 +57,21 @@ const { POST: login } = await import('@/app/api/auth/login/route')
 const { POST: signup } = await import('@/app/api/auth/signup/route')
 const { POST: logout } = await import('@/app/api/auth/logout/route')
 const { GET: sessionRoute } = await import('@/app/api/auth/session/route')
+const { GET: formTokenRoute } = await import('@/app/api/auth/form-token/route')
 const { resolveOwnerId } = await import('@/lib/api/session')
+const { issueFormToken } = await import('@/lib/security/bot')
+const { resetRateLimits } = await import('@/lib/security/rateLimit')
 
-const post = (p: string, body: unknown) =>
-  new NextRequest(`http://localhost${p}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+/** A token issued five seconds ago: old enough to pass the fill-time check. */
+const aged = () => issueFormToken(Date.now() - 5_000)
+
+const post = (p: string, body: unknown, ip = '203.0.113.7') =>
+  new NextRequest(`http://localhost${p}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-forwarded-for': ip }, body: JSON.stringify(body),
+  })
 const me = async () => (await (await sessionRoute()).json()).user
 
-beforeEach(() => { jar.clear(); signedOut.length = 0; refreshes = 0 })
+beforeEach(() => { jar.clear(); signedOut.length = 0; refreshes = 0; resetRateLimits() })
 
 describe('sign in', () => {
   it('sets httpOnly session cookies and returns only id and email', async () => {
@@ -91,13 +99,64 @@ describe('sign in', () => {
 
 describe('sign up', () => {
   it('creates the user, signs in, and refuses a duplicate email', async () => {
-    const res = await signup(post('/api/auth/signup', { email: 'new@slate.test', password: 'a long enough password' }))
+    const res = await signup(post('/api/auth/signup', { email: 'new@slate.test', password: 'a long enough password', formToken: aged(), website: '' }))
     expect(res.status).toBe(201)
     expect(jar.get('slate_at')).toBeDefined()
     jar.clear()
-    const dup = await signup(post('/api/auth/signup', { email: 'new@slate.test', password: 'a long enough password' }))
+    const dup = await signup(post('/api/auth/signup', { email: 'new@slate.test', password: 'a long enough password', formToken: aged() }))
     expect(dup.status).toBe(409)
     expect(jar.size).toBe(0)
+  })
+})
+
+describe('bot protection', () => {
+  const attempt = (extra: Record<string, unknown>, ip?: string) =>
+    signup(post('/api/auth/signup', { email: `bot${Math.random()}@slate.test`, password: 'a long enough password', ...extra }, ip))
+  const code = async (res: Response) => (await res.json()).error?.code
+
+  it('sign-up without a form token is refused before any account is created', async () => {
+    const before = users.size
+    const res = await attempt({})
+    expect(res.status).toBe(400)
+    expect(await code(res)).toBe('bot_check_failed')
+    expect(users.size).toBe(before)
+  })
+
+  it('a forged, instant or expired token is refused', async () => {
+    expect(await code(await attempt({ formToken: `${Date.now() - 5_000}.forged-signature` }))).toBe('bot_check_failed')
+    expect(await code(await attempt({ formToken: issueFormToken() }))).toBe('bot_check_failed')
+    const old = await attempt({ formToken: issueFormToken(Date.now() - 3 * 60 * 60_000) })
+    expect((await old.json()).error.message).toMatch(/reload/i)
+  })
+
+  it('a filled honeypot is refused on sign-up and sign-in', async () => {
+    expect(await code(await attempt({ formToken: aged(), website: 'https://spam.example' }))).toBe('bot_check_failed')
+    const res = await login(post('/api/auth/login', { email: 'qa@slate.test', password: 'correct horse battery', website: 'x' }))
+    expect(res.status).toBe(400)
+    expect(jar.size).toBe(0)
+  })
+
+  it('the form-token route issues a token that sign-up accepts once it has aged', async () => {
+    const res = await formTokenRoute(new NextRequest('http://localhost/api/auth/form-token'))
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+    const { token } = await res.json()
+    expect(token).toMatch(/^\d{13}\.[\w-]+$/)
+  })
+
+  it('rate-limits repeated sign-in attempts per IP with 429 and Retry-After', async () => {
+    const tries = () => login(post('/api/auth/login', { email: 'qa@slate.test', password: 'wrong password here' }, '198.51.100.1'))
+    for (let i = 0; i < 10; i++) expect((await tries()).status).toBe(401)
+    const blocked = await tries()
+    expect(blocked.status).toBe(429)
+    expect(Number(blocked.headers.get('Retry-After'))).toBeGreaterThan(0)
+    // Another client is unaffected.
+    const other = await login(post('/api/auth/login', { email: 'qa@slate.test', password: 'correct horse battery' }, '198.51.100.2'))
+    expect(other.status).toBe(200)
+  })
+
+  it('rate-limits sign-ups per IP', async () => {
+    for (let i = 0; i < 5; i++) await attempt({ formToken: aged() }, '198.51.100.9')
+    expect((await attempt({ formToken: aged() }, '198.51.100.9')).status).toBe(429)
   })
 })
 
