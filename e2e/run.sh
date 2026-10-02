@@ -27,7 +27,7 @@ if ls -a "$DST" | grep -qi '^\.env'; then echo "env file present in E2E copy, ab
 
 cp "$ROOT/e2e/harness/mock-api.js" "$DST/public/mock-api.js"
 cp "$ROOT/e2e/harness/guard.ts" "$DST/src/lib/auth/guard.ts"
-perl -0pi -e 's#<body>\{children\}#<head><script src="/mock-api.js" /></head><body>{children}#' "$DST/src/app/layout.tsx"
+perl -0pi -e 's#<body>#<head><script src="/mock-api.js" /></head><body>#' "$DST/src/app/layout.tsx"
 grep -q 'mock-api.js' "$DST/src/app/layout.tsx" || { echo "layout patch failed"; exit 1; }
 
 cd "$DST"

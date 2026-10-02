@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Bricolage_Grotesque, Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
+import { SITE, siteUrl } from '@/lib/site'
+import { CookieConsent } from '@/components/consent/CookieConsent'
+import { ConsentedAnalytics } from '@/components/consent/ConsentedAnalytics'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist', display: 'swap' })
@@ -18,10 +21,39 @@ const instrument = Instrument_Serif({
   display: 'swap',
 })
 
+/**
+ * Defaults for every page. A page sets `title` (wrapped by the template),
+ * `description` and `alternates.canonical` (see lib/metadata.ts); icons
+ * come from the file conventions in this folder.
+ */
 export const metadata: Metadata = {
-  title: 'Slate — AI video, image and camera motion',
-  description:
-    'Slate is a creative studio for AI video and images. Write the shot, choose a real camera move, and keep every render in your library.',
+  metadataBase: new URL(siteUrl()),
+  title: {
+    default: `${SITE.name} — ${SITE.tagline}`,
+    template: `%s — ${SITE.name}`,
+  },
+  description: SITE.description,
+  applicationName: SITE.name,
+  authors: [{ name: SITE.owner }],
+  creator: SITE.owner,
+  keywords: ['AI video generator', 'AI image generator', 'camera motion', 'text to video', 'image to video', 'Slate'],
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: SITE.name,
+    locale: 'en_US',
+    title: `${SITE.name} — ${SITE.tagline}`,
+    description: SITE.description,
+    url: '/',
+    images: [SITE.ogImage],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${SITE.name} — ${SITE.tagline}`,
+    description: SITE.description,
+    images: [SITE.ogImage],
+  },
+  formatDetection: { telephone: false, email: false, address: false },
 }
 
 export const viewport: Viewport = {
@@ -37,7 +69,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} ${instrument.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <a href="#main" className="skip-link">Skip to content</a>
+        {children}
+        <CookieConsent />
+        <ConsentedAnalytics />
+      </body>
     </html>
   )
 }

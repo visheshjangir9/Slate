@@ -2,8 +2,10 @@ import Link from 'next/link'
 import { LIVE_MODELS } from '@/lib/catalog'
 import { Mark } from './Wordmark'
 import { FooterSignIn } from './FooterSignIn'
+import { CookieSettingsButton } from '@/components/consent/CookieSettingsButton'
 
 const LINK = 'text-sm text-ink-2 transition-colors hover:text-ink'
+const LEGAL = 'py-2 text-xs text-ink-3 transition-colors hover:text-ink'
 
 const COLUMNS: { title: string; links: { label: string; href: string; teaser?: string }[] }[] = [
   {
@@ -71,9 +73,14 @@ export function Footer() {
           </div>
         ))}
       </div>
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 border-t border-line px-4 py-5 sm:px-6 lg:px-10">
-        <span className="flex items-center gap-2 text-xs text-ink-3"><Mark size={16} /> Slate</span>
-        <span className="tabular text-[11px] text-ink-4">Built for the 8x assignment</span>
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-line px-4 py-5 sm:px-6 lg:px-10">
+        <span className="flex items-center gap-2 text-xs text-ink-3"><Mark size={16} /> Slate © {new Date().getFullYear()}</span>
+        <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-5 gap-y-1">
+          <Link href="/privacy" className={LEGAL}>Privacy Policy</Link>
+          <Link href="/terms" className={LEGAL}>Terms</Link>
+          <CookieSettingsButton className={LEGAL} />
+        </nav>
+        <span className="tabular text-[11px] text-ink-3">Built for the 8x assignment</span>
       </div>
     </footer>
   )
