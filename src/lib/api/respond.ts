@@ -52,3 +52,10 @@ export function serverError(err: unknown, code = 'internal_error'): NextResponse
   console.error(`[slate:${code}]`, safe)
   return fail(500, { code, message: 'Something went wrong on our side.' })
 }
+
+/** 429 with Retry-After, so well-behaved clients know when to come back. */
+export const tooManyRequests = (retryAfterS: number) => {
+  const res = fail(429, { code: 'rate_limited', message: 'Too many attempts. Wait a minute and try again.' })
+  res.headers.set('Retry-After', String(retryAfterS))
+  return res
+}

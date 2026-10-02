@@ -3,13 +3,19 @@ import { ZodError } from 'zod'
 import { authClient, authConfigured, ownerForUser, writeSession } from '@/lib/auth/server'
 import { authErrorCopy, credentialsSchema } from '@/lib/auth/schema'
 import { adoptGuestWork } from '@/lib/auth/adopt'
-import { badRequest, fail, fromZod, ok, serverError } from '@/lib/api/respond'
+import { badRequest, fail, fromZod, ok, serverError, tooManyRequests } from '@/lib/api/respond'
+import { honeypotFilled } from '@/lib/security/bot'
+import { LIMITS, clientIp, rateLimit } from '@/lib/security/rateLimit'
 
+/** Per-IP rate limit against password guessing, plus the form's honeypot. */
 export async function POST(req: NextRequest) {
   try {
     if (!authConfigured()) return fail(503, { code: 'auth_unconfigured', message: 'Accounts are not configured here.' })
+    const limit = rateLimit(`login:${clientIp(req)}`, LIMITS.login)
+    if (!limit.ok) return tooManyRequests(limit.retryAfterS)
     const body = await req.json().catch(() => null)
     if (!body) return badRequest('Expected a JSON body')
+    if (honeypotFilled(body)) return fail(400, { code: 'bot_check_failed', message: 'We could not verify this sign-in. Reload the page and try again.' })
     const { email, password } = credentialsSchema.parse(body)
 
     const { data, error } = await authClient().auth.signInWithPassword({ email, password })

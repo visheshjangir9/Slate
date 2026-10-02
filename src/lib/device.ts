@@ -1,5 +1,6 @@
 import 'server-only'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { signingSecret } from '@/lib/security/secret'
 
 export const DEVICE_COOKIE = 'slate_device'
 const MAX_AGE_S = 60 * 60 * 24 * 365
@@ -14,11 +15,8 @@ const MAX_AGE_S = 60 * 60 * 24 * 365
  * The value is HMAC-signed so a client cannot claim another device's history
  * by editing the cookie.
  */
-function secret(): string {
-  return process.env.DEVICE_COOKIE_SECRET || 'slate-dev-secret-not-for-production'
-}
-
-const sign = (id: string): string => createHmac('sha256', secret()).update(id).digest('base64url')
+// Unscoped (no purpose prefix), so cookies issued before the shared helper existed still verify.
+const sign = (id: string): string => createHmac('sha256', signingSecret()).update(id).digest('base64url')
 
 export const mintDeviceToken = (id: string = randomUUID()): { id: string; token: string } => ({
   id,
