@@ -121,7 +121,7 @@ npm install
 
 ### 2. Configure environment variables
 
-Create a `.env.local` file in the project root with these variables (never commit this file):
+Copy [`.env.example`](.env.example) to `.env.local` in the project root and fill it in (never commit `.env.local`):
 
 | Variable | Used for |
 |---|---|
@@ -130,6 +130,8 @@ Create a `.env.local` file in the project root with these variables (never commi
 | `SUPABASE_SECRET_KEY` | Supabase secret key (server only) |
 | `OPENAI_API_KEY` | GPT Image 1 (optional) |
 | `LTXV_API_KEY` | LTX-2 Pro video (optional) |
+| `DEVICE_COOKIE_SECRET` | Signs the guest cookie and sign-up form tokens (`openssl rand -base64 32`) |
+| `NEXT_PUBLIC_SITE_URL` | Canonical address for SEO tags, sitemap and robots.txt (optional; defaults to the Vercel production domain) |
 
 Models without a key are shown as **Not configured** and are never swapped for another model. Camera Motion needs no API key at all.
 
@@ -165,7 +167,35 @@ npx tsc --noEmit    # type check
 - Server API keys live only in environment variables, never in the browser, logs or database.
 - **BYOK keys stay in the browser tab's memory only.** They are never saved and disappear on reload or sign-out.
 - Uploaded images are validated by their **actual bytes**, and the server only calls a fixed list of provider addresses.
-- Security headers are sent on every response.
+- Security headers are sent on every response. **HTTPS is forced**: plain-HTTP requests get a permanent redirect (`src/proxy.ts`), and HSTS keeps browsers on HTTPS.
+- **Bot protection without a CAPTCHA service:** sign-up and sign-in have a hidden honeypot field, sign-up needs a server-signed form token at least 2 seconds old, and both are rate-limited per IP.
+- **Cookie consent:** only essential cookies are set until a visitor chooses. Vercel Web Analytics and Speed Insights (cookieless, no API key) load only after "Accept all". Enable both in the Vercel project dashboard to start collecting.
+- The app has a Privacy Policy (`/privacy`) and Terms and Conditions (`/terms`), linked from every page footer.
+
+### Security checks
+
+```bash
+npm test                              # includes: no client component reads a secret, every secret-reading module is server-only
+node scripts/check-client-bundle.mjs  # after `next build`: no server secret's value appears in the browser bundle
+```
+
+To run the bundle check without real keys, build with dummy values and scan for them:
+
+```bash
+OPENAI_API_KEY=canary-openai-123 SUPABASE_SECRET_KEY=canary-supabase-123 SLATE_STORE=memory npx next build
+OPENAI_API_KEY=canary-openai-123 SUPABASE_SECRET_KEY=canary-supabase-123 node scripts/check-client-bundle.mjs
+```
+
+## Media and SEO maintenance
+
+| Script | What it does |
+|---|---|
+| `node scripts/compress-images.mjs` | Recompresses every JPEG in `public/` with mozjpeg (only rewrites files it shrinks by 5%+) |
+| `bash scripts/compress-videos.sh` | Re-encodes the muted homepage clips: H.264 CRF 26, no audio track, `faststart` (needs ffmpeg) |
+| `node scripts/generate-icons.mjs` | Builds `favicon.ico`, the Apple touch icon and the manifest icons from `src/app/icon.svg` |
+| `node scripts/generate-og-image.mjs` | Renders the 1200×630 social preview card to `public/og.jpg` |
+
+`/sitemap.xml` and `/robots.txt` are generated from the page list in `src/lib/site.ts`. Add new public pages there.
 
 ## Roadmap
 
