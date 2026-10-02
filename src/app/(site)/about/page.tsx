@@ -2,11 +2,14 @@ import Link from 'next/link'
 import { LIVE_MODELS } from '@/lib/catalog'
 import { buttonClass } from '@/components/ui/button'
 import { IconArrowRight, IconArrowUpRight } from '@/components/ui/icons'
+import { pageMetadata } from '@/lib/metadata'
+import { PRIMARY_CTA } from '@/components/shell/nav'
 
-export const metadata = {
-  title: 'About — Slate',
-  description: 'Slate is a creative studio for AI images, video and camera-driven scenes.',
-}
+export const metadata = pageMetadata({
+  title: 'About',
+  description: 'Why Slate exists: one studio for AI images, generative video and a real camera-motion engine, built around real output and honest controls.',
+  path: '/about',
+})
 
 const REPO = 'https://github.com/visheshjangir9/Slate'
 
@@ -82,8 +85,8 @@ export default function AboutPage() {
             github.com/visheshjangir9/Slate <IconArrowUpRight size={15} />
           </a>
         </div>
-        <Link href="/studio" className={buttonClass('contrast', 'lg')}>
-          Enter Studio <IconArrowRight size={16} />
+        <Link href={PRIMARY_CTA.href} className={buttonClass('contrast', 'lg')}>
+          {PRIMARY_CTA.label} <IconArrowRight size={16} />
         </Link>
       </section>
     </div>

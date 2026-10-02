@@ -15,6 +15,7 @@ import { WORKFLOWS } from '@/components/shell/nav'
 import { ButtonLink, Spec, Tag } from '@/components/ui/primitives'
 import { IconArrowRight, IconSearch } from '@/components/ui/icons'
 import { ExploreImage } from './ExploreImage'
+import { artAlt } from '@/lib/artAlt'
 
 const matches = (p: Preset, q: string) =>
   !q || [p.title, p.note, p.prompt, p.category, p.motion, ...p.tags].join(' ').toLowerCase().includes(q)
@@ -151,7 +152,7 @@ export function ExplorePage() {
                 {WORKFLOWS.map((w) => (
                   <Link key={w.id} href={w.href}
                     className="group relative block overflow-hidden rounded-card border border-line" style={{ aspectRatio: 4 / 3 }}>
-                    <ExploreImage file={w.art} alt="" className="transition-transform duration-700 group-hover:scale-[1.04]" />
+                    <ExploreImage file={w.art} alt={artAlt(w.art)} sizes="(min-width: 768px) 33vw, 100vw" className="transition-transform duration-700 group-hover:scale-[1.04]" />
                     <div className="scrim-b absolute inset-x-0 bottom-0 h-2/3" />
                     <div className="absolute inset-x-0 bottom-0 p-5">
                       <p className="display display-s">{w.label}</p>
@@ -194,7 +195,7 @@ function Hero() {
             <MotionPreview motion={FEATURED.motion} source={img} aspect={21 / 9} longEdge={1920} durationMs={9000}
               className="h-full w-full object-cover" label={`${FEATURED.title}: live ${getMotion(FEATURED.motion).label} over the preview still`} />
           ) : (
-            <ExploreImage file={FEATURED.image} alt="" priority />
+            <ExploreImage file={FEATURED.image} alt={artAlt(FEATURED.image)} priority sizes="100vw" />
           )}
         </div>
         <div className="scrim-b absolute inset-x-0 bottom-0 h-3/4" />
@@ -236,7 +237,7 @@ function RecipeTile({ p }: { p: Preset }) {
         aria-label={`Use preset: ${p.title}`}
         className="relative block overflow-hidden rounded-[4px] border border-line bg-surface transition-colors duration-150
           group-hover:border-line-strong" style={{ aspectRatio: aspect }}>
-        <ExploreImage file={p.image} alt={p.title} />
+        <ExploreImage file={p.image} alt={artAlt(p.image, p.title)} />
         {hover && img && (
           <div className="absolute inset-0">
             <MotionPreview motion={p.motion} source={img} aspect={aspect} longEdge={900} label={`${p.title} with ${getMotion(p.motion).label}`} />
