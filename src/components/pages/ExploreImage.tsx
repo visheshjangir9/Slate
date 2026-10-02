@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 
 /**
@@ -11,8 +12,16 @@ import { useState } from 'react'
  * be mistaken for generated output.
  */
 export function ExploreImage({
-  file, alt, className = '', priority = false,
-}: { file: string; alt: string; className?: string; priority?: boolean }) {
+  file, alt, className = '', priority = false, sizes = '(min-width: 1536px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw',
+}: {
+  file: string
+  alt: string
+  className?: string
+  /** The page's largest image: fetched eagerly with high priority. */
+  priority?: boolean
+  /** How wide the image is drawn at each breakpoint, so the browser picks the smallest file that is still sharp. */
+  sizes?: string
+}) {
   const [failed, setFailed] = useState(false)
 
   if (failed) {
@@ -33,14 +42,18 @@ export function ExploreImage({
     )
   }
 
+  // Resized and re-encoded (WebP) per screen by the image optimizer; the
+  // container is always positioned and sized, so `fill` never shifts layout.
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       src={`/explore/${file}`}
       alt={alt}
+      fill
+      sizes={sizes}
+      preload={priority}
       loading={priority ? 'eager' : 'lazy'}
       onError={() => setFailed(true)}
-      className={`h-full w-full object-cover ${className}`}
+      className={`object-cover ${className}`}
     />
   )
 }

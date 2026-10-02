@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouse
 import { signOut, useAuth } from '@/lib/client/auth'
 import { IconChevronDown, IconClose, IconLock, IconMenu } from '@/components/ui/icons'
 import { buttonClass } from '@/components/ui/primitives'
-import { CREATE_MENU, FEATURES_MENU, PRIMARY_NAV, type MenuLink } from './nav'
+import { CREATE_MENU, FEATURES_MENU, PRIMARY_CTA, PRIMARY_NAV, type MenuLink } from './nav'
 import { Wordmark } from './Wordmark'
 import { RenderIndicator } from './RenderIndicator'
 
@@ -232,7 +232,7 @@ export function TopBar() {
           <RenderIndicator />
           <Account />
           {!inStudio && !onSignIn && (
-            <Link href="/studio" className={buttonClass('contrast', 'sm', 'max-sm:hidden')}>Enter Studio</Link>
+            <Link href={PRIMARY_CTA.href} className={buttonClass('contrast', 'sm', 'max-sm:hidden')}>{PRIMARY_CTA.label}</Link>
           )}
           <button type="button" aria-label={mobileOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileOpen}
             onClick={() => setMobileAt(mobileOpen ? null : path)}
@@ -262,7 +262,7 @@ export function TopBar() {
             </Link>
           )}
           {!inStudio && !onSignIn && (
-            <Link href="/studio" className={buttonClass('contrast', 'lg', 'mt-4 w-full')}>Enter Studio</Link>
+            <Link href={PRIMARY_CTA.href} className={buttonClass('contrast', 'lg', 'mt-4 w-full')}>{PRIMARY_CTA.label}</Link>
           )}
         </nav>
       )}

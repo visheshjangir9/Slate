@@ -27,8 +27,32 @@ export function MotionPreview({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>(0)
-  const width = Math.round(aspect >= 1 ? longEdge : longEdge * aspect)
-  const height = Math.round(aspect >= 1 ? longEdge / aspect : longEdge)
+  // Never draw more pixels than the screen shows: a 1920px canvas squeezed
+  // into a phone-width box costs ~10x the work per frame for no visible gain.
+  const [fitEdge, setFitEdge] = useState<number | null>(null)
+  const edge = Math.min(longEdge, fitEdge ?? longEdge)
+  const width = Math.round(aspect >= 1 ? edge : edge * aspect)
+  const height = Math.round(aspect >= 1 ? edge / aspect : edge)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || typeof ResizeObserver !== 'function') return
+    const fullW = aspect >= 1 ? longEdge : longEdge * aspect
+    const fullH = aspect >= 1 ? longEdge / aspect : longEdge
+    const measure = () => {
+      const box = canvas.getBoundingClientRect()
+      if (!box.width || !box.height) return
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      // object-cover: the frame is scaled until it covers the box on both axes.
+      const need = Math.ceil(longEdge * Math.max(box.width / fullW, box.height / fullH) * dpr)
+      const next = Math.max(240, Math.min(longEdge, need))
+      setFitEdge((cur) => (cur && Math.abs(cur - next) / cur < 0.1 ? cur : next))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(canvas)
+    return () => ro.disconnect()
+  }, [aspect, longEdge])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -46,7 +70,10 @@ export function MotionPreview({
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
     if (!playing || reduce) { still(); return }
 
+    // Draw only while the canvas is on screen and the tab is visible: a
+    // full-size frame every rAF otherwise burns the main thread for nothing.
     const start = performance.now()
+    let onScreen = true
     const tick = (now: number) => {
       // Ping-pong so the move reads in both directions without a hard cut.
       const cycle = (now - start) % (durationMs * 2)
@@ -55,8 +82,22 @@ export function MotionPreview({
       applyVignette(ctx, dims, 0.22)
       rafRef.current = requestAnimationFrame(tick)
     }
-    rafRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafRef.current)
+    const sync = () => {
+      cancelAnimationFrame(rafRef.current)
+      if (onScreen && !document.hidden) rafRef.current = requestAnimationFrame(tick)
+    }
+    still()
+    const io = typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; sync() })
+      : null
+    io?.observe(canvas)
+    document.addEventListener('visibilitychange', sync)
+    sync()
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+      io?.disconnect()
+      document.removeEventListener('visibilitychange', sync)
+    }
   }, [motion, source, durationMs, playing, width, height])
 
   return (

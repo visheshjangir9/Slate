@@ -15,7 +15,7 @@ function Copy({ text }: { text: string }) {
         } catch { /* clipboard unavailable; the text is selectable anyway */ }
       }}
       className="absolute right-2 top-2 rounded-[3px] border border-line bg-ground/85 px-2 py-1
-        text-[10px] text-ink-2 transition-colors duration-150 hover:border-line-strong hover:text-ink"
+        text-xs text-ink-2 transition-colors duration-150 hover:border-line-strong hover:text-ink"
     >
       {done ? 'Copied' : 'Copy'}
     </button>
@@ -25,8 +25,9 @@ function Copy({ text }: { text: string }) {
 function Block({ code }: { code: string }) {
   return (
     <div className="relative">
-      <pre className="tabular overflow-x-auto rounded-[4px] border border-line bg-ground p-3
-        text-[11.5px] leading-relaxed text-ink-2">{code}</pre>
+      {/* Focusable so keyboard users can scroll long lines too. */}
+      <pre tabIndex={0} aria-label="Code example" className="tabular overflow-x-auto rounded-[4px] border border-line bg-ground p-3
+        text-[12.5px] leading-relaxed text-ink-2">{code}</pre>
       <Copy text={code} />
     </div>
   )
@@ -207,7 +208,7 @@ export function DevelopersPage() {
             {ENDPOINTS.map((e) => (
               <a key={anchor(e)} href={`#${anchor(e)}`}
                 className="flex items-center gap-2 rounded px-2 py-1.5 text-xs text-ink-3 hover:bg-surface-2 hover:text-ink">
-                <span className={`tabular w-11 shrink-0 text-[10px] ${TONE[e.method].split(' ')[1]}`}>{e.method}</span>
+                <span className={`tabular w-12 shrink-0 text-xs ${TONE[e.method].split(' ')[1]}`}>{e.method}</span>
                 <span className="tabular truncate">{e.path}</span>
               </a>
             ))}
@@ -231,7 +232,7 @@ export function DevelopersPage() {
           {ENDPOINTS.map((e) => (
             <section key={anchor(e)} id={anchor(e)} className="scroll-mt-24 rounded-card border border-line bg-surface p-5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`tabular rounded-[3px] border px-1.5 py-px text-[10px] font-medium ${TONE[e.method]}`}>{e.method}</span>
+                <span className={`tabular rounded-[3px] border px-1.5 py-px text-xs font-medium ${TONE[e.method]}`}>{e.method}</span>
                 <code className="tabular text-sm text-ink">{e.path}</code>
               </div>
               <p className="mt-2.5 text-[13px] leading-relaxed text-ink-2">{e.summary}</p>

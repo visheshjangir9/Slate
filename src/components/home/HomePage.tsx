@@ -16,6 +16,8 @@ import { Intro } from './Intro'
 import { Reveal } from './Reveal'
 import { useInView } from './useInView'
 import { spot } from './spot'
+import { artAlt } from '@/lib/artAlt'
+import { PRIMARY_CTA } from '@/components/shell/nav'
 
 const REPO = 'https://github.com/visheshjangir9/Slate'
 
@@ -35,6 +37,26 @@ export function HomePage() {
 }
 
 /* ------------------------------------------------------------------ */
+
+/**
+ * The homepage's one call to action: the only filled button on the page,
+ * with a quiet way to browse first for anyone not ready to sign up.
+ */
+function PrimaryCta({ className = '' }: { className?: string }) {
+  return (
+    <div className={className}>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <ButtonLink href={PRIMARY_CTA.href} variant="contrast" size="lg" className="uppercase tracking-[0.08em]">
+          {PRIMARY_CTA.label} <IconArrowRight size={16} />
+        </ButtonLink>
+        <Link href="/explore" className="inline-flex min-h-11 items-center gap-1.5 text-[14px] font-medium text-ink-2 underline decoration-line-strong underline-offset-[6px] transition-colors hover:text-ink hover:decoration-ink">
+          or browse recipes
+        </Link>
+      </div>
+      <p className="tabular mt-3 text-[12px] text-ink-3">{PRIMARY_CTA.note}</p>
+    </div>
+  )
+}
 
 function Hero() {
   return (
@@ -65,12 +87,7 @@ function Hero() {
             <p className="max-w-sm border-t border-line pt-4 text-[15px] leading-relaxed text-ink-3">
               Create images, video and camera-driven scenes from one creative workspace.
             </p>
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              <ButtonLink href="/studio" variant="contrast" size="lg" className="uppercase tracking-[0.08em]">
-                Enter Studio <IconArrowRight size={16} />
-              </ButtonLink>
-              <ButtonLink href="/explore" variant="ghost" size="lg" className="uppercase tracking-[0.08em]">Explore</ButtonLink>
-            </div>
+            <PrimaryCta className="mt-5" />
           </div>
         </div>
       </div>
@@ -164,9 +181,9 @@ function CreateSection() {
               {c.video
                 ? <ShowcaseVideo media={c.video} />
                 : c.live
-                ? <LiveFrame file={c.file} motion={c.motion} aspect={i === 0 ? 1.2 : 1.9} alt={c.label} />
+                ? <LiveFrame file={c.file} motion={c.motion} aspect={i === 0 ? 1.2 : 1.9} alt={artAlt(c.file, c.label)} />
                 // eslint-disable-next-line @next/next/no-img-element
-                : <img src={`/explore/${c.file}`} alt="" loading="lazy" className="graded absolute inset-0 h-full w-full bg-surface-2 object-cover transition-transform duration-700 group-hover:scale-[1.03]" />}
+                : <img src={`/explore/${c.file}`} alt={artAlt(c.file)} loading="lazy" className="graded absolute inset-0 h-full w-full bg-surface-2 object-cover transition-transform duration-700 group-hover:scale-[1.03]" />}
               <div className="scrim-b absolute inset-x-0 bottom-0 h-3/4" />
               <div className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-[5px] bg-ground/85 text-ink">
                 <c.Icon size={17} />
@@ -210,7 +227,7 @@ function ExploreSection() {
         <Reveal className="md:col-span-2 lg:row-span-2" variant="media">
           <Link href={presetHref(lead)} {...spot}
             className="spot group relative block aspect-[16/10] overflow-hidden rounded-[4px] border border-line lg:aspect-auto lg:h-full">
-            <LiveFrame file={lead.image} motion={lead.motion} aspect={16 / 10} alt={lead.title} longEdge={1200} />
+            <LiveFrame file={lead.image} motion={lead.motion} aspect={16 / 10} alt={artAlt(lead.image, lead.title)} longEdge={1200} />
             <span className="spot-light" /><span className="spot-sheen" />
             <div className="scrim-b absolute inset-x-0 bottom-0 z-[2] h-2/3" />
             <div className="absolute left-4 top-4 z-[3]"><Tag tone="neutral" onMedia>{lead.category}</Tag></div>
@@ -229,7 +246,7 @@ function ExploreSection() {
             <Link href={presetHref(p)} {...spot}
               className="spot group relative block aspect-[4/3] overflow-hidden rounded-[4px] border border-line">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/explore/${p.image}`} alt={p.title} loading="lazy"
+              <img src={`/explore/${p.image}`} alt={artAlt(p.image, p.title)} loading="lazy"
                 className="graded absolute inset-0 h-full w-full bg-surface-2 object-cover" />
               <span className="spot-light" /><span className="spot-sheen" />
               <div className="scrim-b absolute inset-x-0 bottom-0 z-[2] h-3/5" />
@@ -256,14 +273,14 @@ function MotionSection() {
     <Wrap>
       <SectionHead n="04" eyebrow="Motion" title={<>Fifteen real <span className="serif-accent">camera moves.</span></>}
         aside="Eased, keyframed and bounded so the frame edge never shows. What plays here is the same transform the renderer encodes."
-        action={<ButtonLink href="/motion" variant="contrast">Motion Library <IconArrowRight size={14} /></ButtonLink>} />
+        action={<ButtonLink href="/motion" variant="secondary">Motion Library <IconArrowRight size={14} /></ButtonLink>} />
       <div className="mt-12 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {MOVES.map((m, i) => (
           <Reveal key={m} delay={i * 100} variant="media">
             <Link href={`/studio/motion?motion=${m}`} className="group block">
               <span className="relative block overflow-hidden rounded-[4px] border border-line group-hover:border-line-strong"
                 style={{ aspectRatio: '3 / 4' }}>
-                <LiveFrame file={motionStill(m)} motion={m} aspect={3 / 4} alt={getMotion(m).label} longEdge={640} />
+                <LiveFrame file={motionStill(m)} motion={m} aspect={3 / 4} alt={artAlt(motionStill(m), getMotion(m).label)} longEdge={640} />
               </span>
               <span className="mt-3 flex items-center justify-between">
                 <span className="text-[15px] font-semibold">{getMotion(m).label}</span>
@@ -304,7 +321,7 @@ function ByokSection() {
           <Reveal delay={80}>
             <p className="text-[17px] leading-relaxed text-ink">Use the models you already have.</p>
             <p className="mt-3 text-[15px] leading-relaxed text-ink-3">Connect your provider. Choose your model. Create inside Slate.</p>
-            <ButtonLink href="/byok" variant="contrast" size="lg" className="mt-8 uppercase tracking-[0.08em]">
+            <ButtonLink href="/byok" variant="secondary" size="lg" className="mt-8 uppercase tracking-[0.08em]">
               Try BYOK <IconArrowRight size={16} />
             </ButtonLink>
           </Reveal>
@@ -403,12 +420,7 @@ function FinalCta() {
             <p className="display text-[clamp(2.6rem,6vw,6.25rem)] uppercase leading-[0.86] tracking-[-0.05em]">
               Your next shot<br /><span className="text-signal">starts here.</span>
             </p>
-            <div className="mt-8 flex flex-wrap gap-2">
-              <ButtonLink href="/studio" variant="contrast" size="lg" className="uppercase tracking-[0.08em]">
-                Enter Studio <IconArrowRight size={16} />
-              </ButtonLink>
-              <ButtonLink href="/explore" variant="ghost" size="lg" className="uppercase tracking-[0.08em]">Explore</ButtonLink>
-            </div>
+            <PrimaryCta className="mt-8" />
           </div>
           {/* The full 16:9 frame, uncropped: the clip is shown as it was made. */}
           <div className="relative order-1 aspect-video overflow-hidden rounded-[4px] border border-line bg-black lg:order-2">

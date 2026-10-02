@@ -101,3 +101,11 @@ export const WORKFLOWS: WorkflowItem[] = [
 
 export const workflowForPath = (path: string): Workflow =>
   path.startsWith('/studio/image') ? 'image' : path.startsWith('/studio/motion') ? 'motion' : 'video'
+
+/**
+ * The site's one primary call to action. Every page that shows a filled
+ * (contrast) button shows this one, with this wording, so a visitor always
+ * knows what the next step is. Signed-out visitors pass through sign-in
+ * and land in the Studio.
+ */
+export const PRIMARY_CTA = { label: 'Start creating', href: '/studio', note: 'Free · no card needed' } as const
