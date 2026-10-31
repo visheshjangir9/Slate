@@ -24,7 +24,10 @@ let refreshes = 0
 
 const auth = {
   signInWithPassword: async ({ email, password }: { email: string; password: string }) =>
-    users.get(email) === password
+    // What supabase-js returns when the project is paused or unreachable: no code.
+    email === 'paused@slate.test'
+      ? { data: { session: null, user: null }, error: { name: 'AuthRetryableFetchError', status: 0, message: `fetch failed for ${email}` } }
+      : users.get(email) === password
       ? { data: { session: session(1), user: USER }, error: null }
       : { data: { session: null, user: null }, error: { code: 'invalid_credentials' } },
   getClaims: async (token: string) =>
@@ -90,6 +93,23 @@ describe('sign in', () => {
     expect(res.status).toBe(401)
     expect((await res.json()).error.code).toBe('invalid_credentials')
     expect(jar.size).toBe(0)
+  })
+
+  it('an unreachable project: 502 for the person, the real error in the server log', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const res = await login(post('/api/auth/login', { email: 'paused@slate.test', password: 'some password here' }))
+    expect(res.status).toBe(502)
+    expect((await res.json()).error.code).toBe('auth_unavailable')
+    expect(log).toHaveBeenCalledWith('[slate:auth_unavailable] login', { name: 'AuthRetryableFetchError', code: 'none', status: 0 })
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/paused@|some password/)
+    log.mockRestore()
+  })
+
+  it('a wrong password is not logged as an outage', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await login(post('/api/auth/login', { email: 'qa@slate.test', password: 'wrong password here' }))
+    expect(log).not.toHaveBeenCalled()
+    log.mockRestore()
   })
 
   it('rejects malformed credentials before calling Supabase', async () => {

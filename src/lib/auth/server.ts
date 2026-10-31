@@ -69,6 +69,21 @@ export const authConfigured = (): boolean =>
       process.env.SUPABASE_SECRET_KEY,
   )
 
+/**
+ * Record why Supabase refused when the copy shown to the person hides it (a
+ * paused project, a wrong key, an unmapped code). Name, code and status only:
+ * the message can echo input, and the request itself is never logged.
+ */
+export function logAuthFailure(
+  op: string,
+  error: { name?: string; code?: string; status?: number } | null | undefined,
+): void {
+  const detail = error
+    ? { name: error.name ?? 'unknown', code: error.code ?? 'none', status: error.status ?? 'none' }
+    : { name: 'no_session', code: 'none', status: 'none' }
+  console.error(`[slate:auth_unavailable] ${op}`, detail)
+}
+
 export async function writeSession(session: Session): Promise<void> {
   const jar = await cookies()
   jar.set(ACCESS_COOKIE, session.access_token, { ...cookieBase, maxAge: 60 * 60 * 24 * 7 })

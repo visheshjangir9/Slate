@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { ZodError } from 'zod'
-import { adminClient, authClient, authConfigured, ownerForUser, writeSession } from '@/lib/auth/server'
+import { adminClient, authClient, authConfigured, logAuthFailure, ownerForUser, writeSession } from '@/lib/auth/server'
 import { authErrorCopy, credentialsSchema } from '@/lib/auth/schema'
 import { badRequest, fail, fromZod, ok, serverError, tooManyRequests } from '@/lib/api/respond'
 import { checkFormToken, honeypotFilled } from '@/lib/security/bot'
@@ -47,12 +47,14 @@ export async function POST(req: NextRequest) {
     const created = await adminClient().auth.admin.createUser({ email, password, email_confirm: true })
     if (created.error) {
       const e = authErrorCopy(created.error.code)
+      if (e.code === 'auth_unavailable') logAuthFailure('signup.create', created.error)
       return fail(e.status, { code: e.code, message: e.message })
     }
 
     const { data, error } = await authClient().auth.signInWithPassword({ email, password })
     if (error || !data.session || !data.user) {
       const e = authErrorCopy(error?.code)
+      if (e.code === 'auth_unavailable') logAuthFailure('signup.signin', error)
       return fail(e.status, { code: e.code, message: e.message })
     }
     await writeSession(data.session)

@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { ZodError } from 'zod'
-import { authClient, authConfigured, ownerForUser, writeSession } from '@/lib/auth/server'
+import { authClient, authConfigured, logAuthFailure, ownerForUser, writeSession } from '@/lib/auth/server'
 import { authErrorCopy, credentialsSchema } from '@/lib/auth/schema'
 import { adoptGuestWork } from '@/lib/auth/adopt'
 import { badRequest, fail, fromZod, ok, serverError, tooManyRequests } from '@/lib/api/respond'
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
     if (error || !data.session || !data.user) {
       const e = authErrorCopy(error?.code)
       securityEvent('auth_failed', { ip, op: 'login', reason: e.code })
+      if (e.code === 'auth_unavailable') logAuthFailure('login', error)
       return fail(e.status, { code: e.code, message: e.message })
     }
     await writeSession(data.session)
