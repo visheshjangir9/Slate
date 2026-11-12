@@ -1,11 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react'
 import { HERO_MEDIA } from '@/lib/media'
 import { useInView } from './useInView'
 import { useReducedMotion } from './useReducedMotion'
 
 type Mode = 'motion' | 'stills'
+
+/** A clip's first playable moment: its own best passage, or its first frame. */
+const startOf = (i: number) => HERO_MEDIA[i].start ?? 0
 
 const N = HERO_MEDIA.length
 /** Crossfade length; matches .hero-slide[data-state="active"] in globals.css. */
@@ -31,14 +34,17 @@ const useDocumentHidden = () =>
  * Only the active clip plays; the next one preloads. Rotation pauses off
  * screen and in a background tab, and never runs automatically under reduced
  * motion, where Stills is the default and the numbered ticks step manually.
+ *
+ * `parallaxRef` is the wrapper the hero moves on scroll; the controls sit
+ * outside it, pinned to the hero's bottom-right corner.
  */
-export function HeroMedia() {
+export function HeroMedia({ parallaxRef }: { parallaxRef?: RefObject<HTMLDivElement | null> }) {
   const reduced = useReducedMotion()
   const hidden = useDocumentHidden()
   const [frameRef, inView] = useInView<HTMLDivElement>({ margin: '0px' })
 
-  const [choice, setChoice] = useState<Mode | null>(null)
-  const mode: Mode = choice ?? (reduced ? 'stills' : 'motion')
+  // Motion by default; under reduced motion the stills stand in and the ticks step by hand.
+  const mode: Mode = reduced ? 'stills' : 'motion'
   const [index, setIndex] = useState(0)
   const [prev, setPrev] = useState<number | null>(null)
   /** Bumped on every change, so the timer and the progress tick restart together. */
@@ -91,34 +97,29 @@ export function HeroMedia() {
       v.muted = true // before play(), or autoplay is refused
       if (mode !== 'motion' || inView === false || hidden) { v.pause(); return }
       if (i === index) {
-        if (enteringMotion && v.readyState > 0) v.currentTime = 0
+        if (v.readyState > 0 && (enteringMotion || v.currentTime < startOf(i))) v.currentTime = startOf(i)
         v.play().catch(() => { /* autoplay refused: the still stays */ })
       } else if (i === prev) {
         const left = (v.duration || 0) - v.currentTime
         if (left * 1000 < FADE_MS + 150) v.pause()
       } else {
         v.pause()
-        if (v.readyState > 0) v.currentTime = 0
+        if (v.readyState > 0) v.currentTime = startOf(i)
       }
     })
   }, [index, prev, mode, inView, hidden])
-
-  const switchMode = (next: Mode) => {
-    if (next === mode) return
-    setChoice(next)
-    setCycle((c) => c + 1)
-  }
 
   const active = HERO_MEDIA[index]
 
   return (
     <>
+      <div ref={parallaxRef} className="hero-parallax">
       <div ref={frameRef} role="img" aria-label={active.label} className="hero-media absolute inset-0 isolate overflow-hidden bg-black">
         {HERO_MEDIA.map((m, i) => {
           const state = i === index ? 'active' : i === prev ? 'prev' : 'idle'
           const preload = mode !== 'motion' ? 'none' : i === index || i === (index + 1) % N ? 'auto' : 'none'
           return (
-            <div key={m.src} className="hero-slide" data-state={state}>
+            <div key={m.src} className="hero-slide" data-state={state} data-crop={m.crop}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={m.poster} alt="" decoding="async" fetchPriority={i === 0 ? 'high' : 'low'}
                 className="absolute inset-0 h-full w-full object-cover" />
@@ -132,6 +133,7 @@ export function HeroMedia() {
                 preload={preload}
                 aria-hidden
                 tabIndex={-1}
+                onLoadedMetadata={(e) => { if (e.currentTarget.currentTime < startOf(i)) e.currentTarget.currentTime = startOf(i) }}
                 onPlaying={() => setPlaying((p) => (p[i] ? p : p.map((x, j) => (j === i ? true : x))))}
                 className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-out
                   ${mode === 'motion' && playing[i] ? 'opacity-100' : 'opacity-0'}`}
@@ -141,38 +143,31 @@ export function HeroMedia() {
         })}
       </div>
 
-      {/* The text-safe grade: the media itself dims and quietens toward the headline. */}
-      <div aria-hidden className="hero-grade" />
+      </div>
 
-      <div className="absolute right-3 top-3 z-10 flex items-center gap-3 sm:right-5 sm:top-4">
-        <div className="flex items-center" role="group" aria-label="Hero media">
-          {HERO_MEDIA.map((m, i) => (
-            <button key={m.src} type="button" onClick={() => go(i)}
-              aria-label={`Show ${i + 1} of ${N}`} aria-current={i === index ? 'true' : undefined}
-              className="group flex h-7 w-6 items-center px-[3px]">
-              <span className="relative block h-[2px] w-full overflow-hidden rounded-full bg-white/25 transition-colors group-hover:bg-white/45">
-                {i === index && (
-                  <span key={`${mode}-${cycle}-${rotating}`}
-                    className={`absolute inset-0 bg-ink ${rotating ? 'shot-progress' : ''}`}
-                    style={rotating ? { animationDuration: `${active.hold}ms` } : undefined} />
-                )}
-              </span>
-            </button>
-          ))}
-        </div>
+      {/* Two grades: a short fall from the top for the bar, a long rise from the base for the headline. */}
+      <div aria-hidden className="hero-scrim" data-edge="top" />
+      <div aria-hidden className="hero-scrim" data-edge="bottom" />
 
-        <div className="relative grid grid-cols-2 rounded-full border border-white/15 bg-[#0b0b0c]/60 p-[3px] backdrop-blur-sm">
-          <span aria-hidden
-            className="absolute inset-y-[3px] left-[3px] w-[calc(50%-3px)] rounded-full bg-ink transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)]"
-            style={{ transform: mode === 'motion' ? 'translateX(100%)' : 'none' }} />
-          {(['stills', 'motion'] as const).map((m) => (
-            <button key={m} type="button" onClick={() => switchMode(m)} aria-pressed={mode === m}
-              className={`relative z-10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors duration-300
-                ${mode === m ? 'text-ground' : 'text-ink-2 hover:text-ink'}`}>
-              {m}
-            </button>
-          ))}
-        </div>
+      <div className="hero-controls hero-rise z-10 flex items-center gap-0.5" style={{ ['--d' as string]: '240ms' }}
+        role="group" aria-label="Hero media">
+        <span className="meta mr-3" aria-hidden>
+          {String(index + 1).padStart(2, '0')} / {String(N).padStart(2, '0')}
+        </span>
+        {HERO_MEDIA.map((m, i) => (
+          <button key={m.src} type="button" onClick={() => go(i)}
+            aria-label={`Show ${i + 1} of ${N}`} aria-current={i === index ? 'true' : undefined}
+            className="flex h-11 items-center px-[3px]">
+            <span className="hero-tick">
+              {i < index && <span className="absolute inset-0 bg-ink/45" />}
+              {i === index && (
+                <span key={`${mode}-${cycle}-${rotating}`}
+                  className={`absolute inset-0 bg-ink ${rotating ? 'shot-progress' : ''}`}
+                  style={rotating ? { animationDuration: `${active.hold}ms` } : undefined} />
+              )}
+            </span>
+          </button>
+        ))}
       </div>
     </>
   )

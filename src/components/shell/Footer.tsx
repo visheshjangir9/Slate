@@ -4,8 +4,8 @@ import { Mark } from './Wordmark'
 import { FooterSignIn } from './FooterSignIn'
 import { CookieSettingsButton } from '@/components/consent/CookieSettingsButton'
 
-const LINK = 'text-sm text-ink-2 transition-colors hover:text-ink'
-const LEGAL = 'py-2 text-xs text-ink-3 transition-colors hover:text-ink'
+const LINK = 'text-[15px] text-ink-2 transition-colors hover:text-ink'
+const LEGAL = 'py-2 text-[13px] text-ink-3 transition-colors hover:text-ink'
 
 const COLUMNS: { title: string; links: { label: string; href: string; teaser?: string }[] }[] = [
   {
@@ -39,27 +39,27 @@ const COLUMNS: { title: string; links: { label: string; href: string; teaser?: s
 /** Every link here resolves to a working page. */
 export function Footer() {
   return (
-    <footer className="border-t border-line bg-ground">
-      <div className="mx-auto grid max-w-[1440px] gap-10 px-4 pb-8 pt-14 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-10">
+    <footer className="overflow-hidden border-t border-line bg-ground">
+      <div className="wrap grid gap-8 pb-[clamp(40px,6vh,72px)] pt-[clamp(40px,6vh,72px)] min-[760px]:grid-cols-[1.6fr_1fr_1fr_1fr]">
         <div>
-          <p className="display display-m text-ink">
-            Make the <span className="serif-accent text-signal">shot.</span>
+          <p className="display display-m">
+            Make the <span className="serif-accent">shot.</span>
           </p>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-3">
+          <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-ink-2">
             Slate is a studio for AI video and images. Live in this build:{' '}
             {LIVE_MODELS.map((m) => m.name).join(', ')}.
           </p>
         </div>
         {COLUMNS.map((col) => (
           <div key={col.title}>
-            <p className="eyebrow mb-4 text-ink-3">{col.title}</p>
+            <p className="mb-3.5 text-[13.5px] text-ink-3">{col.title}</p>
             <ul className="flex flex-col gap-2.5">
               {col.links.map((l) => (
                 <li key={l.href + l.label}>
                   {l.teaser ? (
                     <Link href={l.href} className={`group ${LINK}`}>
                       {l.label}
-                      <span className="mt-0.5 block text-[11px] text-ink-4 transition-colors group-hover:text-signal">
+                      <span className="mt-0.5 block text-[12px] text-ink-3 transition-colors group-hover:text-ink">
                         ({l.teaser} <span className="teaser-wink">😉</span>)
                       </span>
                     </Link>
@@ -73,15 +73,17 @@ export function Footer() {
           </div>
         ))}
       </div>
-      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-line px-4 py-5 sm:px-6 lg:px-10">
+      <div className="wrap"><div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-white/[.085] py-5">
         <span className="flex items-center gap-2 text-xs text-ink-3"><Mark size={16} /> Slate © {new Date().getFullYear()}</span>
         <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link href="/privacy" className={LEGAL}>Privacy Policy</Link>
           <Link href="/terms" className={LEGAL}>Terms</Link>
           <CookieSettingsButton className={LEGAL} />
         </nav>
-        <span className="tabular text-[11px] text-ink-3">Built for the 8x assignment</span>
-      </div>
+        <span className="tabular text-[12px] text-ink-3">Built for the 8x assignment</span>
+      </div></div>
+      {/* The page signs off with its own name, enormous and barely there. */}
+      <p aria-hidden className="foot-word">Slate</p>
     </footer>
   )
 }

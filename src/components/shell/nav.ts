@@ -108,4 +108,4 @@ export const workflowForPath = (path: string): Workflow =>
  * knows what the next step is. Signed-out visitors pass through sign-in
  * and land in the Studio.
  */
-export const PRIMARY_CTA = { label: 'Start creating', href: '/studio', note: 'Free · no card needed' } as const
+export const PRIMARY_CTA = { label: 'Start creating', href: '/studio', note: 'Free to start · no card needed' } as const

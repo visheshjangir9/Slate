@@ -20,9 +20,11 @@ const TOKEN_MIN_AGE_MS = 2_200
 /** Refresh well inside the server's two-hour limit. */
 const TOKEN_MAX_AGE_MS = 60 * 60_000
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+/** Where a fresh session lands: the front page, before the Studio. */
+const AFTER_AUTH = '/'
 
 const inputCls = (bad: boolean) =>
-  `h-12 w-full rounded-[var(--radius-ctl)] border bg-[#0e0e0f] px-3.5 text-[15px] text-ink placeholder:text-ink-4
+  `h-12 w-full rounded-[var(--radius-ctl)] border bg-white/[.03] px-3.5 text-[15px] text-ink placeholder:text-ink-4
    transition-colors focus:outline-none ${bad ? 'border-danger/70' : 'border-line-strong focus:border-ink-3'}`
 
 export function LoginPanel() {
@@ -96,8 +98,10 @@ export function LoginPanel() {
       setBusy(false)
       return
     }
-    // Hard navigation, so every view loads fresh under the new session.
-    window.location.assign(next)
+    // Home first, and by a hard navigation on purpose: the slate claps and
+    // every view loads fresh under the new session. The Studio is one click on.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign(AFTER_AUTH)
   }
 
   const switchMode = (m: Mode) => { setMode(m); setError(null); setFields({}); setTouched({}) }
@@ -110,10 +114,10 @@ export function LoginPanel() {
             label="Sample frame with a live Dolly In, the same transform the renderer uses" />
         </div>
         <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_180px_60px_rgba(8,8,9,0.6)]" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0c0c0d]/95 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ground/95 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-10 xl:p-14">
-          <p aria-hidden className="display text-[clamp(2.6rem,5vw,5rem)] uppercase leading-[0.86] tracking-[-0.05em]">
-            Imagine.<br />Create.<br /><span className="text-signal">Move.</span>
+          <p aria-hidden className="display text-[clamp(2.6rem,5vw,5rem)] leading-[0.92]">
+            Imagine.<br />Create.<br /><span className="serif-accent">Move.</span>
           </p>
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-ink-2">
             Your Studio, history and assets live in your account, on any browser.
@@ -135,7 +139,7 @@ export function LoginPanel() {
             </div>
           ) : (
             <>
-              <h1 className="display text-[clamp(2.2rem,4vw,3.25rem)] leading-[0.9] tracking-[-0.045em] max-lg:mt-6">
+              <h1 className="display text-[clamp(2.2rem,4vw,3.25rem)] leading-[0.96] max-lg:mt-6">
                 {mode === 'signin' ? 'Sign in to Slate' : 'Create your account'}
               </h1>
               <p className="mt-3 text-[14px] leading-relaxed text-ink-3">
@@ -172,7 +176,7 @@ export function LoginPanel() {
                       className={`${inputCls(Boolean(fields.password))} pr-16`} />
                     <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword}
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      className="absolute inset-y-1 right-1 rounded-[4px] px-3 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-3 hover:text-ink">
+                      className="absolute inset-y-1 right-1 rounded-[6px] px-3 text-[13px] text-ink-3 hover:text-ink">
                       {showPassword ? 'Hide' : 'Show'}
                     </button>
                   </div>
@@ -197,7 +201,7 @@ export function LoginPanel() {
                   </p>
                 )}
 
-                <Button type="submit" variant="contrast" size="lg" disabled={busy} className="mt-1 uppercase tracking-[0.06em]">
+                <Button type="submit" variant="contrast" size="lg" disabled={busy} className="mt-1">
                   {busy ? 'One moment…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
                 </Button>
                 {mode === 'signup' && (

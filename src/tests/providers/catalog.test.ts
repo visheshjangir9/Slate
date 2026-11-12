@@ -194,7 +194,7 @@ describe('homepage', () => {
   it('section 05 is Bring your own AI, opening /byok', () => {
     expect(src).toMatch(/<ByokSection \/>/)
     expect(src).toContain('href="/byok"')
-    expect(src).toMatch(/>05<\/span>.*Bring your own AI/)
+    expect(src).toMatch(/n="05" eyebrow="Bring your own AI"/)
     expect(src).toContain('Use the models you already have.')
     expect(src).toContain('Connect your provider. Choose your model. Create inside Slate.')
     for (const line of ['Your model.', 'Your provider.', 'Your generation.']) expect(src).toContain(line)

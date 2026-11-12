@@ -447,8 +447,8 @@ export function resultSpec(g: Generation): (string | null)[] {
 /** The strongest action on a finished result: accent fill, lift on hover, press on click. */
 export const DOWNLOAD_CLS =
   // `!` so this wins over the base button's colour-only transition; Tailwind v4 scales via `scale`.
-  'font-semibold shadow-[0_6px_20px_-8px_rgba(255,138,61,0.6)] transition-[scale,filter,box-shadow,background-color]! ' +
-  'duration-150 hover:scale-[1.03] hover:brightness-110 hover:shadow-[0_10px_28px_-8px_rgba(255,138,61,0.75)] ' +
+  'font-semibold shadow-[0_6px_20px_-8px_rgba(255,255,255,0.22)] transition-[scale,filter,box-shadow,background-color]! ' +
+  'duration-150 hover:scale-[1.03] hover:brightness-110 hover:shadow-[0_10px_28px_-8px_rgba(255,255,255,0.3)] ' +
   'active:scale-[0.97] active:brightness-95'
 
 export const downloadName = (g: Generation): string => {

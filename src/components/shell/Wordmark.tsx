@@ -19,9 +19,9 @@ export function Mark({ size = 22, armClassName }: { size?: number; armClassName?
 
 export function Wordmark({ size = 22 }: { size?: number }) {
   return (
-    <span className="flex items-center gap-2">
+    <span className="flex items-center gap-2.5">
       <Mark size={size} />
-      <span className="font-display text-[19px] font-extrabold tracking-[-0.04em] text-ink">Slate</span>
+      <span className="font-display text-[19px] font-semibold tracking-[-0.035em] text-ink">Slate</span>
     </span>
   )
 }

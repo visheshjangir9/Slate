@@ -20,6 +20,10 @@ export interface HeroMedia extends ShowcaseMedia {
   /** How long it stays up, in ms. Always shorter than the clip, so a clip is
    *  left before it would loop back to its first frame. */
   hold: number
+  /** Push the frame past a generator's mark in that part of the picture. */
+  crop?: 'bottom'
+  /** Where playback begins, in seconds, when the clip's best passage is not its first frame. */
+  start?: number
 }
 
 /**
@@ -28,21 +32,23 @@ export interface HeroMedia extends ShowcaseMedia {
  */
 export const HERO_MEDIA: HeroMedia[] = [
   {
-    src: `${V}/slate-hero.mp4`, poster: `${STILLS}/hero-still-01.jpg`, hold: 5600,
-    label: 'People crossing a rain-soaked city street at dusk',
+    // Opens on the mountains (2s in; the still is that frame) and stays through
+    // the change to the interior, leaving before the 8s clip ends.
+    src: `${V}/hero-02.mp4`, poster: `${STILLS}/hero-still-02.jpg`, hold: 5600, start: 2,
+    label: 'A woman in a knit sweater standing still while the world behind her changes',
   },
   {
-    src: `${V}/hero-02.mp4`, poster: `${STILLS}/hero-still-02.jpg`, hold: 5600,
-    label: 'A woman in a knit sweater standing among desert dunes beneath snow-capped mountains',
-  },
-  {
-    src: `${V}/hero-03.mp4`, poster: `${STILLS}/hero-still-03.jpg`, hold: 5600,
-    label: 'A white running shoe on a concrete plinth in a rain-soaked neon street',
-  },
-  {
-    // A 5.04s clip: it hands over just before it ends.
-    src: `${V}/hero-04.mp4`, poster: `${STILLS}/hero-still-04.jpg`, hold: 4800,
+    // A 5.04s clip: it hands over just before it ends. KlingAI mark bottom-right.
+    src: `${V}/hero-04.mp4`, poster: `${STILLS}/hero-still-04.jpg`, hold: 4800, crop: 'bottom',
     label: 'A lone figure at the end of a long mirrored corridor lit by softboxes',
+  },
+  {
+    src: `${V}/slate-hero.mp4`, poster: `${STILLS}/hero-still-01.jpg`, hold: 7000,
+    label: 'A couple under an umbrella on a rain-soaked city street at dusk',
+  },
+  {
+    src: `${V}/hero-03.mp4`, poster: `${STILLS}/hero-still-03.jpg`, hold: 7600,
+    label: 'A white running shoe on a concrete plinth in a rain-soaked neon street',
   },
 ]
 

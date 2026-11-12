@@ -63,7 +63,7 @@ export function IntroVideo() {
 
   return (
     <div ref={box} className="intro-player group/intro relative">
-      <div className="intro-glow" aria-hidden />
+      <div className="player-glow" aria-hidden />
       <div className="relative overflow-hidden rounded-[14px] border border-line-strong bg-ground shadow-[0_40px_120px_-50px_rgba(0,0,0,.95)]">
         <video
           ref={video}

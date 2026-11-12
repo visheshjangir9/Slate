@@ -8,6 +8,7 @@ import { IconChevronDown, IconClose, IconLock, IconMenu } from '@/components/ui/
 import { buttonClass } from '@/components/ui/primitives'
 import { CREATE_MENU, FEATURES_MENU, PRIMARY_CTA, PRIMARY_NAV, type MenuLink } from './nav'
 import { Wordmark } from './Wordmark'
+import { replayIntro } from '@/components/home/Intro'
 import { RenderIndicator } from './RenderIndicator'
 
 type MenuId = 'create' | 'features'
@@ -65,19 +66,18 @@ function NavMenu({
   useEffect(() => cancel, [])
 
   return (
-    <div className="relative" onMouseEnter={() => { cancel(); onOpen(id) }} onMouseLeave={later}>
+    <div data-nav className="relative z-[1]" onMouseEnter={() => { cancel(); onOpen(id) }} onMouseLeave={later}>
       <button type="button" aria-expanded={open} aria-haspopup="true" aria-controls={`menu-${id}`}
         onClick={() => (open ? onClose(id) : onOpen(id))}
-        className={`relative flex h-14 items-center gap-1 px-3 text-[13px] font-medium transition-colors duration-150
-          ${active || open ? 'text-ink' : 'text-ink-3 hover:text-ink'}`}>
+        className={`relative flex h-16 items-center px-3.5 text-[14.5px] transition-colors duration-200
+          ${active || open ? 'text-ink' : 'text-ink-2 hover:text-ink'}`}>
         {label}
-        <IconChevronDown size={12} className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-        <span className={`absolute inset-x-3 bottom-0 h-[2px] bg-signal transition-opacity ${active ? 'opacity-100' : 'opacity-0'}`} />
+        <span className={`absolute inset-x-3.5 bottom-0 h-px bg-signal transition-opacity ${active ? 'opacity-100' : 'opacity-0'}`} />
       </button>
       {open && (
         // pt-2 is a hover bridge: the gap between trigger and panel still counts as "inside".
         <div id={`menu-${id}`} className="absolute left-0 top-full z-50 pt-2" style={{ width }}>
-          <div className="rise rounded-[8px] border border-line-strong bg-surface p-2 shadow-2xl shadow-black/70">
+          <div className="rise rounded-[14px] border border-white/[.12] bg-surface/95 p-2 shadow-2xl shadow-black/70 backdrop-blur-xl">
             {children}
           </div>
         </div>
@@ -109,8 +109,8 @@ function Account() {
     if (path.startsWith('/sign-in')) return null
     return (
       <Link href={`/sign-in?next=${encodeURIComponent(next)}`}
-        className="hidden h-8 items-center px-2 sm:flex text-[13px] font-medium text-ink-2 transition-colors hover:text-ink">
-        Sign In
+        className="hidden h-8 items-center sm:flex text-[14.5px] text-ink-2 transition-colors hover:text-ink">
+        Sign in
       </Link>
     )
   }
@@ -159,20 +159,38 @@ export function TopBar() {
   const guest = useAuth().status === 'guest'
 
   /**
-   * The wordmark is Home. From another route, the Link navigates to / and
-   * lands at the top. On / itself a Link to the same URL does not move, so
-   * scroll to the top explicitly and drop any section hash (#byok).
+   * The wordmark is Home, and going home claps the slate. From another route,
+   * the Link navigates to / and the homepage mounts into the short intro. On /
+   * itself a Link to the same URL does not move, so the intro replays in place
+   * and, behind its shutter, the page returns to the top and drops any
+   * section hash (#byok).
    */
   const goHome = (e: ReactMouseEvent<HTMLAnchorElement>) => {
     setMobileAt(null)
-    if (path !== '/' || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+    replayIntro()
+    if (path !== '/') return
     e.preventDefault()
     if (window.location.hash || window.location.search) window.history.replaceState(window.history.state, '', '/')
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })
-    // A smooth scroll can be interrupted (or not run at all in a background
-    // tab); the top is the destination either way.
-    if (!reduce) setTimeout(() => { if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'auto' }) }, 900)
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }
+
+  // On the homepage the bar floats over the hero, clear until the page moves.
+  const onHome = path === '/'
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    if (!onHome) return
+    const read = () => setScrolled(window.scrollY > 24)
+    const raf = requestAnimationFrame(read)
+    window.addEventListener('scroll', read, { passive: true })
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', read) }
+  }, [onHome])
+
+  // A pill slides under whichever primary link the pointer is over.
+  const [pill, setPill] = useState<{ x: number; w: number; on: boolean }>({ x: 0, w: 0, on: false })
+  const overNav = (e: ReactMouseEvent<HTMLElement>) => {
+    const item = (e.target as HTMLElement).closest<HTMLElement>('[data-nav]')
+    if (item) setPill({ x: item.offsetLeft, w: item.offsetWidth, on: true })
   }
 
   const openMenu = useCallback((id: MenuId) => setMenuAt({ id, path }), [path])
@@ -187,25 +205,30 @@ export function TopBar() {
   }, [open])
 
   const linkCls = (active: boolean) =>
-    `relative flex h-14 items-center px-3 text-[13px] font-medium transition-colors duration-150 ${active ? 'text-ink' : 'text-ink-3 hover:text-ink'}`
+    `relative z-[1] flex h-16 items-center px-3.5 text-[14.5px] transition-colors duration-200 ${active ? 'text-ink' : 'text-ink-2 hover:text-ink'}`
 
+  const clear = onHome && !scrolled && !open && !mobileOpen
   return (
-    <header className="sticky top-0 z-40 shrink-0 border-b border-line bg-[#0c0c0d]/95 backdrop-blur-[2px]">
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-1 px-3 sm:px-5">
-        <Link href="/" scroll aria-label="Slate home" onClick={goHome} className="mr-4 rounded px-1 py-1">
+    <header className={`top-0 z-40 shrink-0 border-b transition-[background-color,border-color,backdrop-filter] duration-500
+      ${onHome ? 'fixed inset-x-0' : 'sticky'}
+      ${clear ? 'border-transparent bg-transparent' : 'border-line bg-ground/75 backdrop-blur-xl backdrop-saturate-150'}`}>
+      <div className="flex h-16 items-center px-[var(--gutter)]">
+        <Link href="/" scroll aria-label="Slate home" onClick={goHome} className="mr-9 rounded py-1">
           <Wordmark />
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center lg:flex">
+        <nav aria-label="Primary" className="relative hidden items-center lg:flex"
+          onMouseOver={overNav} onMouseLeave={() => setPill((p) => ({ ...p, on: false }))}>
+          <span aria-hidden className="nav-pill" style={{ width: pill.w, transform: `translateX(${pill.x}px)`, opacity: pill.on ? 1 : 0 }} />
           <NavMenu id="create" label="Create" active={inStudio} open={open === 'create'}
             onOpen={openMenu} onClose={closeMenu} width={320}>
             {CREATE_MENU.map((it) => <MenuEntry key={it.label} item={it} onNavigate={() => closeMenu()} />)}
           </NavMenu>
           {PRIMARY_NAV.slice(0, 2).map((item) => (
-            <Link key={item.href} href={item.href} className={linkCls(item.match(path))}
+            <Link key={item.href} href={item.href} data-nav className={linkCls(item.match(path))}
               aria-current={item.match(path) ? 'page' : undefined}>
               {item.label}
-              <span className={`absolute inset-x-3 bottom-0 h-[2px] bg-signal ${item.match(path) ? 'opacity-100' : 'opacity-0'}`} />
+              <span className={`absolute inset-x-3.5 bottom-0 h-px bg-signal ${item.match(path) ? 'opacity-100' : 'opacity-0'}`} />
             </Link>
           ))}
           <NavMenu id="features" label="Features" active={false} open={open === 'features'}
@@ -220,19 +243,19 @@ export function TopBar() {
             </div>
           </NavMenu>
           {PRIMARY_NAV.slice(2).map((item) => (
-            <Link key={item.href} href={item.href} className={linkCls(item.match(path))}
+            <Link key={item.href} href={item.href} data-nav className={linkCls(item.match(path))}
               aria-current={item.match(path) ? 'page' : undefined}>
               {item.label}
-              <span className={`absolute inset-x-3 bottom-0 h-[2px] bg-signal ${item.match(path) ? 'opacity-100' : 'opacity-0'}`} />
+              <span className={`absolute inset-x-3.5 bottom-0 h-px bg-signal ${item.match(path) ? 'opacity-100' : 'opacity-0'}`} />
             </Link>
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-[18px]">
           <RenderIndicator />
           <Account />
           {!inStudio && !onSignIn && (
-            <Link href={PRIMARY_CTA.href} className={buttonClass('contrast', 'sm', 'max-sm:hidden')}>{PRIMARY_CTA.label}</Link>
+            <Link href={PRIMARY_CTA.href} className={buttonClass('contrast', 'md', '!h-[38px] max-sm:hidden')}>{PRIMARY_CTA.label}</Link>
           )}
           <button type="button" aria-label={mobileOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileOpen}
             onClick={() => setMobileAt(mobileOpen ? null : path)}
@@ -243,7 +266,7 @@ export function TopBar() {
       </div>
 
       {mobileOpen && (
-        <nav aria-label="Mobile" className="rise max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-t border-line bg-[#0c0c0d] px-3 pb-5 pt-2 lg:hidden">
+        <nav aria-label="Mobile" className="rise max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-line bg-ground px-3 pb-5 pt-2 lg:hidden">
           <p className="eyebrow px-3 pb-1 pt-3 text-ink-3">Create</p>
           {CREATE_MENU.map((it) => <MenuEntry key={it.label} item={it} onNavigate={() => setMobileAt(null)} />)}
           <div className="my-2 h-px bg-line" />

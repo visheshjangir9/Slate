@@ -9,7 +9,7 @@ export function Reveal({ children, delay = 0, className = '', variant }: {
   /** head: parts arrive in order (rv-bar, rv-title, rv-aside). media: curtain wipe with the photo settling. */
   variant?: 'head' | 'media'
 }) {
-  const [ref, inView] = useInView<HTMLDivElement>({ once: true })
+  const [ref, inView] = useInView<HTMLDivElement>({ once: true, margin: '0px 0px -6% 0px' })
   return (
     <div ref={ref} className={`reveal ${className}`} data-in={inView === null ? undefined : String(inView)} data-variant={variant}
       style={{ ['--d' as string]: `${delay}ms` }}>

@@ -25,16 +25,19 @@ describe('showcase media', () => {
   })
 
   it('rotates the four hero clips, each paired with its own still, in order', () => {
+    // The portrait, the corridor, the couple on the street, then the shoe.
     expect(HERO_MEDIA.map((m) => [m.src.split('/').pop(), m.poster.split('/').pop()])).toEqual([
-      ['slate-hero.mp4', 'hero-still-01.jpg'],
       ['hero-02.mp4', 'hero-still-02.jpg'],
-      ['hero-03.mp4', 'hero-still-03.jpg'],
       ['hero-04.mp4', 'hero-still-04.jpg'],
+      ['slate-hero.mp4', 'hero-still-01.jpg'],
+      ['hero-03.mp4', 'hero-still-03.jpg'],
     ])
     for (const m of HERO_MEDIA) {
       expect(m.hold).toBeGreaterThanOrEqual(4500)
-      expect(m.hold).toBeLessThanOrEqual(6000)
+      expect(m.hold).toBeLessThanOrEqual(8000)
     }
+    // The corridor clip carries a generator's mark, so it is the one that is cropped.
+    expect(HERO_MEDIA.filter((m) => m.crop).map((m) => m.src.split('/').pop())).toEqual(['hero-04.mp4'])
   })
 
   it('keeps the sports car out of the hero', () => {
