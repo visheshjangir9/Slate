@@ -22,10 +22,25 @@ export interface ProPass {
 export interface Account {
   pro: ProPass | null
   deleted: { k: Kind; t: string }[]
+  /**
+   * Every payment ever credited. Checking only the latest one would let two
+   * real payments be replayed in turn (A, B, A, B…) for endless extensions.
+   */
+  payments: string[]
 }
 
 /** Enough to outlast any allowance; the oldest notes fall off first. */
 const MAX_DELETED = 400
+/** One a month for over sixteen years. */
+const MAX_PAYMENTS = 200
+
+const withPayment = (account: Account, pro: ProPass): Account => ({
+  ...account,
+  pro,
+  payments: account.payments.includes(pro.paymentId)
+    ? account.payments
+    : [...account.payments, pro.paymentId].slice(-MAX_PAYMENTS),
+})
 
 export interface AccountStore {
   get(userId: string): Promise<Account>
@@ -33,13 +48,13 @@ export interface AccountStore {
   noteDeleted(userId: string, kind: Kind, createdAt: string): Promise<void>
 }
 
-const empty = (): Account => ({ pro: null, deleted: [] })
+const empty = (): Account => ({ pro: null, deleted: [], payments: [] })
 
 const KIND_SET = new Set<string>(['image', 'video', 'motion'])
 
 /** Read whatever is stored defensively: metadata is JSON, and old shapes must never throw. */
 export function parseAccount(raw: unknown): Account {
-  const r = (raw ?? {}) as { pro?: Partial<ProPass> | null; deleted?: unknown }
+  const r = (raw ?? {}) as { pro?: Partial<ProPass> | null; deleted?: unknown; payments?: unknown }
   const pro = r.pro && typeof r.pro.since === 'string' && typeof r.pro.until === 'string'
     ? { since: r.pro.since, until: r.pro.until, paymentId: String(r.pro.paymentId ?? '') }
     : null
@@ -47,14 +62,17 @@ export function parseAccount(raw: unknown): Account {
     ? r.deleted.filter((d): d is { k: Kind; t: string } =>
         Boolean(d) && KIND_SET.has((d as { k?: string }).k ?? '') && typeof (d as { t?: unknown }).t === 'string')
     : []
-  return { pro, deleted }
+  const payments = Array.isArray(r.payments) ? r.payments.filter((p): p is string => typeof p === 'string' && p !== '') : []
+  // Accounts written before the list existed still remember their latest payment.
+  if (pro?.paymentId && !payments.includes(pro.paymentId)) payments.push(pro.paymentId)
+  return { pro, deleted, payments }
 }
 
 export class MemoryAccountStore implements AccountStore {
   private rows = new Map<string, Account>()
   async get(userId: string) { return structuredClone(this.rows.get(userId) ?? empty()) }
   async setPro(userId: string, pro: ProPass) {
-    this.rows.set(userId, { ...(this.rows.get(userId) ?? empty()), pro })
+    this.rows.set(userId, withPayment(this.rows.get(userId) ?? empty(), pro))
   }
   async noteDeleted(userId: string, kind: Kind, createdAt: string) {
     const cur = this.rows.get(userId) ?? empty()
@@ -76,7 +94,7 @@ export class SupabaseAccountStore implements AccountStore {
   async get(userId: string) { return (await this.read(userId)).account }
   async setPro(userId: string, pro: ProPass) {
     const { account, meta } = await this.read(userId)
-    await this.write(userId, meta, { ...account, pro })
+    await this.write(userId, meta, withPayment(account, pro))
   }
   async noteDeleted(userId: string, kind: Kind, createdAt: string) {
     const { account, meta } = await this.read(userId)

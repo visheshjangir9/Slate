@@ -137,7 +137,8 @@ describe('the Pro pass', () => {
     for (let i = 0; i < 15; i++) await made(signedIn, 'cinematic')
     expect((await post(MOVE)).status).toBe(402)
 
-    const now = Date.now()
+    // One millisecond on, so the seeded work is unambiguously from before the pass.
+    const now = Date.now() + 1
     await accountStore().setPro(signedIn, { since: new Date(now).toISOString(), until: new Date(now + 86_400_000).toISOString(), paymentId: 'pay_x' })
     const s = await billingStatus(`user:${signedIn}`)
     expect(s.plan).toBe('pro')
@@ -150,9 +151,9 @@ describe('the Pro pass', () => {
   })
 
   it('reads stored account data defensively', () => {
-    expect(parseAccount(undefined)).toEqual({ pro: null, deleted: [] })
+    expect(parseAccount(undefined)).toEqual({ pro: null, deleted: [], payments: [] })
     expect(parseAccount({ pro: { since: 1 }, deleted: [{ k: 'nope', t: 'x' }, { k: 'image', t: '2026-01-01' }, null] }))
-      .toEqual({ pro: null, deleted: [{ k: 'image', t: '2026-01-01' }] })
+      .toEqual({ pro: null, deleted: [{ k: 'image', t: '2026-01-01' }], payments: [] })
   })
 })
 
@@ -220,6 +221,25 @@ describe('Razorpay checkout', () => {
     // The same payment arriving again must not add another thirty days.
     const again = await (await verify(req('/api/billing/verify', 'POST', payload))).json()
     expect(again.until).toBe(s.until)
+  })
+
+  it('two real payments cannot be replayed in turn for extra months', async () => {
+    signedIn = user()
+    const pay = async (paymentId: string) => {
+      const { orderId } = await (await checkout()).json()
+      return { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: sign(orderId, paymentId) }
+    }
+    const a = await pay('pay_first1')
+    const b = await pay('pay_second')
+    await verify(req('/api/billing/verify', 'POST', a))
+    const afterTwo = await (await verify(req('/api/billing/verify', 'POST', b))).json()
+    // A, B, A, B: only the first time each payment is seen counts.
+    for (const p of [a, b, a, b]) {
+      const s = await (await verify(req('/api/billing/verify', 'POST', p))).json()
+      expect(s.until).toBe(afterTwo.until)
+    }
+    const days = (new Date(afterTwo.until).getTime() - Date.now()) / 86_400_000
+    expect(days).toBeLessThanOrEqual(60)
   })
 
   it('refuses a forged signature, and a payment made for someone else', async () => {

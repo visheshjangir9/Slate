@@ -131,6 +131,8 @@ export function uploadArtifact(id: string, video: Blob, poster: Blob | null) {
 
 /** The still must come through our server: the upstream 403s browser origins. */
 export function stillUrl(opts: {
+  /** The running camera-motion job the frame is for; the server reads prompt and seed from it. */
+  generationId: string
   prompt: string
   width: number
   height: number
@@ -138,6 +140,7 @@ export function stillUrl(opts: {
   model: string
 }): string {
   const p = new URLSearchParams({
+    gen: opts.generationId,
     prompt: opts.prompt,
     width: String(opts.width),
     height: String(opts.height),

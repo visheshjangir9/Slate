@@ -1,4 +1,4 @@
-import 'server-only'
+// No secrets here, and the proxy imports it too, so no server-only marker.
 import type { NextRequest } from 'next/server'
 
 /**

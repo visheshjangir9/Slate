@@ -57,3 +57,9 @@ __pycache__/
 
 # ...except the template, which holds no values
 !.env.example
+
+# AI session transcripts: local only, never published
+.agent-logs/
+
+# Security reports: local only, the repository is public
+docs/security/

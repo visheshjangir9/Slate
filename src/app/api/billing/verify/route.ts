@@ -6,6 +6,8 @@ import { accountStore } from '@/lib/billing/account'
 import { PRO_AMOUNT_PAISE, PRO_PASS } from '@/lib/billing/plans'
 import { fetchOrder, razorpayConfigured, signatureIsValid } from '@/lib/billing/razorpay'
 import { billingStatus } from '@/lib/billing/usage'
+import { securityEvent } from '@/lib/security/audit'
+import { clientIp } from '@/lib/security/rateLimit'
 
 const bodySchema = z.object({
   razorpay_order_id: z.string().min(6).max(64),
@@ -35,16 +37,18 @@ export async function POST(req: NextRequest) {
     const body = bodySchema.parse(raw)
 
     if (!signatureIsValid(body.razorpay_order_id, body.razorpay_payment_id, body.razorpay_signature)) {
+      securityEvent('payment_rejected', { ip: clientIp(req), user: user.id, reason: 'bad_signature' })
       return fail(400, { code: 'payment_unverified', message: 'That payment could not be verified.' })
     }
     const order = await fetchOrder(body.razorpay_order_id)
     if (order.notes.user_id !== user.id || order.amount !== PRO_AMOUNT_PAISE || order.currency !== PRO_PASS.currency) {
+      securityEvent('payment_rejected', { ip: clientIp(req), user: user.id, reason: 'order_mismatch' })
       return fail(400, { code: 'payment_mismatch', message: 'That payment does not match this account.' })
     }
 
     const accounts = accountStore()
     const account = await accounts.get(user.id)
-    if (account.pro?.paymentId !== body.razorpay_payment_id) {
+    if (!account.payments.includes(body.razorpay_payment_id)) {
       const now = Date.now()
       const running = account.pro && new Date(account.pro.until).getTime() > now
       // Paying early extends the pass from where it ends; a lapsed one starts today.

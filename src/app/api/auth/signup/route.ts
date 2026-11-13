@@ -5,6 +5,7 @@ import { authErrorCopy, credentialsSchema } from '@/lib/auth/schema'
 import { badRequest, fail, fromZod, ok, serverError, tooManyRequests } from '@/lib/api/respond'
 import { checkFormToken, honeypotFilled } from '@/lib/security/bot'
 import { LIMITS, clientIp, rateLimit } from '@/lib/security/rateLimit'
+import { securityEvent } from '@/lib/security/audit'
 import { adoptGuestWork } from '@/lib/auth/adopt'
 
 /**
@@ -21,14 +22,19 @@ import { adoptGuestWork } from '@/lib/auth/adopt'
 export async function POST(req: NextRequest) {
   try {
     if (!authConfigured()) return fail(503, { code: 'auth_unconfigured', message: 'Accounts are not configured here.' })
-    const limit = rateLimit(`signup:${clientIp(req)}`, LIMITS.signup)
-    if (!limit.ok) return tooManyRequests(limit.retryAfterS)
+    const ip = clientIp(req)
+    const limit = rateLimit(`signup:${ip}`, LIMITS.signup)
+    if (!limit.ok) {
+      securityEvent('rate_limited', { ip, budget: 'signup' })
+      return tooManyRequests(limit.retryAfterS)
+    }
     const body = await req.json().catch(() => null)
     if (!body) return badRequest('Expected a JSON body')
 
     // Bot checks run before validation, so a bot learns nothing about the schema.
     const token = checkFormToken(body.formToken)
     if (honeypotFilled(body) || token !== 'ok') {
+      securityEvent('auth_failed', { ip, op: 'signup', reason: token === 'ok' ? 'honeypot' : `form_token_${token}` })
       return fail(400, {
         code: 'bot_check_failed',
         message: token === 'expired'

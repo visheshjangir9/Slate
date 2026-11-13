@@ -164,9 +164,9 @@ const ENDPOINTS: Endpoint[] = [
   },
   {
     method: 'GET', path: '/api/still',
-    summary: 'Generate a single frame and stream it back as JPEG.',
-    detail: 'Exists because the upstream rejects browser-origin requests: it returns 403 "Missing Turnstile token" whenever an Origin header is present. Proxying server-side also keeps the image same-origin, so a canvas reading it back is not tainted.',
-    request: `curl -s 'https://YOUR_HOST/api/still?prompt=a%20lighthouse%20at%20dusk&width=1280&height=720&seed=42' \\
+    summary: 'Draw the source frame for a running camera-motion generation and stream it back as JPEG.',
+    detail: 'Signed in only. "gen" must be a camera-motion generation the caller owns that has been started; the frame is drawn from that generation\'s own prompt and seed, so stills are always counted against the plan. Proxying server-side also keeps the image same-origin, so a canvas reading it back is not tainted.',
+    request: `curl -s -b cookies.txt 'https://YOUR_HOST/api/still?gen=GENERATION_ID&width=1280&height=720' \\
   -o frame.jpg`,
   },
   {

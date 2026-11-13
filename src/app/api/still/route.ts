@@ -2,8 +2,11 @@ import type { NextRequest } from 'next/server'
 import { createHash } from 'node:crypto'
 import { ZodError } from 'zod'
 import { stillQuerySchema } from '@/lib/generation/schema'
-import { fail, fromZod } from '@/lib/api/respond'
-import { blobStore } from '@/lib/store'
+import { fail, fromZod, serverError } from '@/lib/api/respond'
+import { blobStore, generationStore } from '@/lib/store'
+import { resolveOwnerId } from '@/lib/api/session'
+import { securityEvent } from '@/lib/security/audit'
+import { clientIp } from '@/lib/security/rateLimit'
 import { cropWatermark, overfetchHeight } from '@/lib/api/crop'
 import { fetchStill } from '@/lib/images'
 
@@ -18,6 +21,12 @@ export const maxDuration = 60
  * without one. So the browser can never fetch it directly. Proxying also keeps
  * the image same-origin, which means a canvas reading it back is not tainted.
  *
+ * It spends money (the first provider is a paid image API), so it is not an
+ * open endpoint: the caller must be signed in and name a camera-motion job
+ * they own that is running right now. That job already passed the plan check
+ * when it was created, and the frame is drawn from the job's own prompt and
+ * seed, so a still can never be fetched outside a counted generation.
+ *
  * Three further things happen here, each for a measured reason:
  *   - results are cached, because the upstream is slow and rate limits by IP
  *   - the frame is over-fetched and cropped, because the upstream stamps a
@@ -26,13 +35,31 @@ export const maxDuration = 60
  */
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
+  let ownerId: string
+  try {
+    ownerId = await resolveOwnerId()
+  } catch (e) {
+    return serverError(e, 'still_failed')
+  }
+
+  const genId = url.searchParams.get('gen') ?? ''
+  const job = genId ? await generationStore().get(genId).catch(() => null) : null
+  if (!job || job.deviceId !== ownerId) {
+    securityEvent('still_denied', { ip: clientIp(req), owner: ownerId, reason: genId ? 'not_owner' : 'no_job' })
+    return fail(404, { code: 'not_found', message: 'That generation does not exist' })
+  }
+  if (job.provider !== 'cinematic' || job.status !== 'generating' || job.referenceUrl) {
+    securityEvent('still_denied', { ip: clientIp(req), owner: ownerId, reason: 'job_not_drawing' })
+    return fail(409, { code: 'still_not_needed', message: 'This generation is not waiting for a frame.' })
+  }
+
   let q: ReturnType<typeof stillQuerySchema.parse>
   try {
     q = stillQuerySchema.parse({
-      prompt: url.searchParams.get('prompt'),
+      prompt: job.prompt,
       width: url.searchParams.get('width'),
       height: url.searchParams.get('height'),
-      seed: url.searchParams.get('seed') ?? 0,
+      seed: job.seed,
     })
   } catch (e) {
     if (e instanceof ZodError) return fromZod(e)

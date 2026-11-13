@@ -319,7 +319,7 @@ class GenerationManager {
         img.onerror = () => rej(new Error(gen.referenceUrl ? 'reference_unreadable' : 'still_unavailable'))
         // A reference image replaces the generated still entirely.
         img.src = gen.referenceUrl ?? api.stillUrl({
-          prompt: gen.prompt, width: dims.width, height: dims.height,
+          generationId: gen.id, prompt: gen.prompt, width: dims.width, height: dims.height,
           seed: gen.seed, model: STILL_MODEL[gen.model] ?? 'flux',
         })
       })
