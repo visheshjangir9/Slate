@@ -26,14 +26,32 @@ import type { ByokAdapter, VideoStatus } from './types'
 const BASE = 'https://generativelanguage.googleapis.com/v1beta'
 const auth = (key: string) => ({ 'x-goog-api-key': key })
 
-interface GoogleError { error?: { status?: string; details?: { reason?: string }[] } }
+interface QuotaViolation { quotaMetric?: string; quotaId?: string; quotaValue?: string }
+interface GoogleError { error?: { status?: string; message?: string; details?: { reason?: string; violations?: QuotaViolation[] }[] } }
+
+/**
+ * A free-tier quota whose limit is zero: the key's plan does not include this
+ * model at all (Gemini image models on a free key, for one). Waiting never
+ * helps, so it must not read as a rate limit. Google states the limit in the
+ * structured violations; older responses only say "limit: 0" in the message,
+ * which is matched here and otherwise discarded.
+ */
+function freeTierExcludes(body: GoogleError | null): boolean {
+  const violations = body?.error?.details?.flatMap((d) => d.violations ?? []) ?? []
+  const freeTier = (v: QuotaViolation) => /free_?tier/i.test(`${v.quotaMetric ?? ''} ${v.quotaId ?? ''}`)
+  if (violations.some((v) => freeTier(v) && v.quotaValue === '0')) return true
+  return violations.some(freeTier) && /\blimit:\s*0\b/.test(body?.error?.message ?? '')
+}
 
 async function googleError(res: Response): Promise<ByokError> {
   // Machine-readable codes only; message text is discarded.
   const body = (await res.json().catch(() => null)) as GoogleError | null
   const reasons = body?.error?.details?.map((d) => d.reason) ?? []
   if (reasons.includes('API_KEY_INVALID') || body?.error?.status === 'UNAUTHENTICATED') return new ByokError('byok_auth_failed')
-  if (body?.error?.status === 'RESOURCE_EXHAUSTED') return new ByokError(res.status === 429 ? 'byok_rate_limited' : 'byok_no_credit')
+  if (body?.error?.status === 'RESOURCE_EXHAUSTED') {
+    if (freeTierExcludes(body)) return new ByokError('byok_free_tier')
+    return new ByokError(res.status === 429 ? 'byok_rate_limited' : 'byok_no_credit')
+  }
   if (res.status === 404 || body?.error?.status === 'NOT_FOUND') return new ByokError('byok_model_unavailable')
   if (res.status === 400) return new ByokError('byok_unsupported')
   return errorForStatus(res.status)

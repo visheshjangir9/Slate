@@ -132,6 +132,20 @@ describe('Google adapter: Veo video', () => {
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
+  it('a free key asking for a model its tier excludes is told so, not told to wait', async () => {
+    const quota = (value: string | undefined, message = '') => json({ error: { status: 'RESOURCE_EXHAUSTED', message, details: [{
+      '@type': 'type.googleapis.com/google.rpc.QuotaFailure',
+      violations: [{ quotaMetric: 'generativelanguage.googleapis.com/generate_content_free_tier_requests', quotaId: 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', ...(value === undefined ? {} : { quotaValue: value }) }],
+    }] } }, 429)
+    stubFetch(quota('0'))
+    expect((await caught(submitVideo(google, VEO, { prompt: 'x', aspectRatio: '16:9', durationS: 8 }, DEFAULT_BYOK_SETTINGS))).code).toBe('byok_free_tier')
+    stubFetch(quota(undefined, 'Quota exceeded for metric: generate_content_free_tier_requests, limit: 0, model: gemini-2.5-flash-image'))
+    expect((await caught(submitVideo(google, VEO, { prompt: 'x', aspectRatio: '16:9', durationS: 8 }, DEFAULT_BYOK_SETTINGS))).code).toBe('byok_free_tier')
+    // A real free-tier rate limit (limit above zero) still says "try again later".
+    stubFetch(quota('10'))
+    expect((await caught(submitVideo(google, VEO, { prompt: 'x', aspectRatio: '16:9', durationS: 8 }, DEFAULT_BYOK_SETTINGS))).code).toBe('byok_rate_limited')
+  })
+
   it('refuses parameters the model does not document, before any request', async () => {
     const { fn } = stubFetch()
     expect((await caught(submitVideo(google, VEO, { prompt: 'x', aspectRatio: '1:1', durationS: 8 }, DEFAULT_BYOK_SETTINGS))).code).toBe('byok_unsupported')

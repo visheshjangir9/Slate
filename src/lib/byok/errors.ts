@@ -14,6 +14,7 @@ export const BYOK_ERRORS = {
   byok_rate_limited: 'The provider rate-limited this request. Try again later.',
   byok_timeout: 'The provider did not respond in time.',
   byok_no_credit: 'The provider account has insufficient quota.',
+  byok_free_tier: 'This key is on the provider’s free tier, which does not include this model. Turn on billing for the key’s project, then try again.',
   byok_blocked: 'The provider declined this prompt.',
   byok_bad_output: 'The provider returned something that was not a usable image.',
   byok_bad_video: 'The provider returned something that was not a playable video.',
