@@ -11,6 +11,7 @@ import { createSubmitGuard } from './submitGuard'
 import type { Workflow } from '@/components/shell/nav'
 import * as api from './api'
 import { ApiError, type Catalog, type CreateInput } from './api'
+import { openPaywallFor } from './billing'
 import { generationManager, type RunState } from './generationManager'
 import { currentStore, useCurrent } from './current'
 
@@ -238,6 +239,8 @@ export function useStudio(workflow: Workflow, initial?: Partial<ComposerState>, 
       currentStore.set(workflow, generation.id)
       generationManager.enqueue(generation, execution === 'server' ? 'server' : 'client')
     } catch (err) {
+      // Past the plan's allowance: the upgrade panel explains it; nothing has failed.
+      if (openPaywallFor(err)) return
       if (err instanceof ApiError) {
         setFieldErrors(err.fields ?? {})
         setNotice(err.fields ? null : err.message)
@@ -256,8 +259,8 @@ export function useStudio(workflow: Workflow, initial?: Partial<ComposerState>, 
       const { generation, execution } = await api.retryGeneration(id)
       currentStore.set(workflow, generation.id)
       generationManager.enqueue(generation, execution === 'server' ? 'server' : 'client')
-    } catch {
-      setNotice('Could not retry that generation.')
+    } catch (err) {
+      if (!openPaywallFor(err)) setNotice('Could not retry that generation.')
     }
   }, [workflow])
 

@@ -29,6 +29,7 @@ const COLUMNS: { title: string; links: { label: string; href: string; teaser?: s
   {
     title: 'Slate',
     links: [
+      { label: 'Pricing', href: '/pricing' },
       { label: 'About', href: '/about' },
       { label: 'Developers', href: '/developers' },
       { label: 'Contact me', href: '/contact', teaser: 'there’s a surprise' },

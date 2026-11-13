@@ -5,6 +5,7 @@ import { reduce, type GenerationEvent } from '@/lib/generation/state'
 import { generationStore } from '@/lib/store'
 import { resolveOwnerId } from '@/lib/api/session'
 import { badRequest, conflict, fromZod, notFound, ok, serverError } from '@/lib/api/respond'
+import { noteDeletion } from '@/lib/billing/usage'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -84,6 +85,8 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
     const { id } = await ctx.params
     const row = await own(id)
     if (!row) return notFound('That generation does not exist')
+    // Deleting a result does not hand its allowance back: note it first.
+    await noteDeletion(row)
     await generationStore().remove(id)
     return ok({ deleted: true })
   } catch (e) {

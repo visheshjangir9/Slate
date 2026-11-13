@@ -14,6 +14,7 @@ export interface NavItem {
 export const PRIMARY_NAV: NavItem[] = [
   { label: 'Explore', href: '/explore', match: (p) => p.startsWith('/explore') },
   { label: 'Motion', href: '/motion', match: (p) => p.startsWith('/motion') },
+  { label: 'Pricing', href: '/pricing', match: (p) => p.startsWith('/pricing') },
   { label: 'About', href: '/about', match: (p) => p.startsWith('/about') },
 ]
 

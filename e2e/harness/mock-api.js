@@ -228,6 +228,25 @@
       var limit = Number(url.searchParams.get('limit') || 30)
       return reply({ generations: db.gens.slice(0, limit).map(clean), nextCursor: null })
     }
+    // Billing: Pro by default so the suite can generate freely. Set
+    // sessionStorage slate_mock_plan = 'free-spent' to stand in for a Free
+    // account that has used its image, which the server would refuse with 402.
+    var freeSpent = sessionStorage.getItem('slate_mock_plan') === 'free-spent'
+    if (path === '/api/billing/status') {
+      return reply(freeSpent
+        ? { plan: 'free', limits: { image: 1, video: 0, motion: 15 }, used: { image: 1, video: 0, motion: 0 }, until: null, payments: false }
+        : { plan: 'pro', limits: { image: 50, video: 10, motion: null }, used: { image: 0, video: 0, motion: 0 }, until: new Date(Date.now() + 20 * 24 * 60 * MIN).toISOString(), payments: false })
+    }
+    if (path === '/api/billing/checkout' || path === '/api/billing/verify') {
+      return reply({ error: { code: 'payments_unconfigured', message: 'Payments are not switched on yet.' } }, 503)
+    }
+    if (path === '/api/generations' && method === 'POST' && freeSpent && body && String(body.model).indexOf('byok:') !== 0) {
+      var kind = body.model === 'gpt-image-1' ? 'image' : body.model === 'slate-cinematic-1' ? 'motion' : 'video'
+      if (kind !== 'motion') {
+        return reply({ error: { code: 'quota_exceeded', message: kind === 'video' ? 'Videos are part of Slate Pro.' : 'You have used 1 of 1 image on the Free plan.',
+          fields: { kind: kind, plan: 'free', limit: kind === 'video' ? '0' : '1', used: kind === 'video' ? '0' : '1' } } }, 402)
+      }
+    }
     if (path === '/api/generations' && method === 'POST') {
       if (!body || !body.prompt || body.prompt.trim().length < 3) {
         return reply({ error: { code: 'invalid_input', message: 'Check the highlighted fields.', fields: { prompt: 'Write at least 3 characters.' } } }, 422)

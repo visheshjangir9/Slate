@@ -9,6 +9,8 @@ import { generationStore } from '@/lib/store'
 import { resolveOwnerId } from '@/lib/api/session'
 import { badRequest, fromZod, ok, serverError } from '@/lib/api/respond'
 import type { MotionId } from '@/lib/engine/types'
+import { kindOf } from '@/lib/billing/plans'
+import { assertWithinPlan } from '@/lib/billing/usage'
 
 /** Create a generation. Validates, negotiates with the provider, persists as `queued`. */
 export async function POST(req: NextRequest) {
@@ -30,6 +32,10 @@ export async function POST(req: NextRequest) {
     }
 
     const provider = providerForModel(input.model)
+    // The plan's allowance, checked before anything is stored or sent to a
+    // model. Work on the person's own key (above) is theirs to pay for and
+    // is never counted.
+    await assertWithinPlan(ownerId, kindOf({ provider: provider.capabilities.id }))
     const seed = input.seed ?? randomSeed()
     const { normalized, adjustments } = provider.negotiate({
       prompt: input.prompt,

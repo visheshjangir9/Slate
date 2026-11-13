@@ -14,6 +14,11 @@ export const ok = <T>(data: T, init?: ResponseInit): NextResponse =>
 export const fail = (status: number, error: ApiError): NextResponse =>
   NextResponse.json({ error }, { status })
 
+/** Shape of billing's QuotaError, matched structurally so this module stays free of server-only imports. */
+interface QuotaLike { code: 'quota_exceeded'; message: string; kind: string; plan: string; limit: number; used: number }
+const isQuotaError = (e: unknown): e is QuotaLike =>
+  e instanceof Error && (e as { code?: unknown }).code === 'quota_exceeded' && typeof (e as { kind?: unknown }).kind === 'string'
+
 export const badRequest = (message: string, fields?: Record<string, string>) =>
   fail(400, { code: 'invalid_request', message, fields })
 
@@ -44,8 +49,15 @@ export class AuthRequiredError extends Error {
 export const unauthorized = () =>
   fail(401, { code: 'auth_required', message: 'Sign in to continue.' })
 
+/** Past the plan's allowance. `fields` carries what the upgrade panel needs: kind, plan, limit, used. */
+export const paymentRequired = (message: string, fields: Record<string, string>) =>
+  fail(402, { code: 'quota_exceeded', message, fields })
+
 export function serverError(err: unknown, code = 'internal_error'): NextResponse {
   if (err instanceof AuthRequiredError) return unauthorized()
+  if (isQuotaError(err)) {
+    return paymentRequired(err.message, { kind: err.kind, plan: err.plan, limit: String(err.limit), used: String(err.used) })
+  }
   const message = err instanceof Error ? err.message : String(err)
   // OpenAI-style (sk-…, Bearer …) and Google-style (AIza…) keys, whoever's they are.
   const safe = message.replace(/(Bearer\s+|sk-|AIza)[A-Za-z0-9._-]+/gi, '[redacted]')

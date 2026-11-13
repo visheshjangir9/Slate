@@ -5,7 +5,7 @@ import { STALE_AFTER_MS, reduce } from '@/lib/generation/state'
 import { OUTPUTS_BUCKET, supabaseEnv } from '@/lib/env'
 import { readMarkers, withMarkers } from './origin'
 import type {
-  BlobStore, GenerationStore, ListOptions, ListResult, NewGeneration, StoredBlob,
+  BlobStore, GenerationStore, ListOptions, ListResult, NewGeneration, StoredBlob, UsageRow,
 } from './types'
 
 /**
@@ -156,6 +156,20 @@ export class SupabaseGenerationStore implements GenerationStore {
       items: page.map(fromRow),
       nextCursor: hasMore ? page[page.length - 1].created_at : null,
     }
+  }
+
+  /** Four columns, newest first. An account's history is small; 5,000 rows is far past any allowance. */
+  async listUsage(deviceId: string): Promise<UsageRow[]> {
+    const { data, error } = await supabase()
+      .from(TABLE)
+      .select('provider, status, created_at')
+      .eq('device_id', deviceId)
+      .order('created_at', { ascending: false })
+      .limit(5000)
+    if (error) boom('usage', error)
+    return ((data ?? []) as Pick<Row, 'provider' | 'status' | 'created_at'>[]).map((r) => ({
+      provider: r.provider, status: r.status as Generation['status'], createdAt: r.created_at,
+    }))
   }
 
   async patch(id: string, patch: Partial<Generation>): Promise<Generation | null> {

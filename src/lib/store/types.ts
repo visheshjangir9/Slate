@@ -15,6 +15,9 @@ export interface ListResult {
   nextCursor: string | null
 }
 
+/** The few facts plan allowances are counted from. */
+export type UsageRow = Pick<Generation, 'provider' | 'status' | 'createdAt'>
+
 /**
  * Persistence boundary.
  *
@@ -28,6 +31,8 @@ export interface GenerationStore {
   create(input: NewGeneration): Promise<Generation>
   get(id: string): Promise<Generation | null>
   listByDevice(deviceId: string, opts: ListOptions): Promise<ListResult>
+  /** Every generation an owner has, reduced to what usage is counted from. */
+  listUsage(deviceId: string): Promise<UsageRow[]>
   patch(id: string, patch: Partial<Generation>): Promise<Generation | null>
   remove(id: string): Promise<boolean>
   /**

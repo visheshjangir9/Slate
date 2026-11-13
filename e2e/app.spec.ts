@@ -54,7 +54,7 @@ test.describe('landing', () => {
 })
 
 test.describe('every page renders without errors', () => {
-  for (const path of ['/', '/explore', '/motion', '/about', '/byok', '/developers', '/contact', '/assets', '/studio', '/studio/image', '/studio/motion']) {
+  for (const path of ['/', '/explore', '/motion', '/pricing', '/about', '/byok', '/developers', '/contact', '/assets', '/studio', '/studio/image', '/studio/motion']) {
     test(path, async ({ page }) => {
       const errors = await noConsoleErrors(page)
       const res = await page.goto(path)
@@ -70,6 +70,41 @@ async function prompt(page: Page, text: string) {
   const box = page.locator('textarea').first()
   await box.fill(text)
 }
+
+test.describe('Plans', () => {
+  test('a Free account past its image allowance is offered Pro, not shown an error', async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('slate_mock_plan', 'free-spent'))
+    await page.goto('/studio/image')
+    await prompt(page, 'a quiet harbour at dawn, long exposure')
+    await page.getByRole('button', { name: /Generate image/i }).click()
+    const panel = page.getByTestId('paywall')
+    await expect(panel).toBeVisible()
+    await expect(panel).toContainText(/used your free image/i)
+    await expect(panel).toContainText('₹799')
+    await expect(panel.getByRole('link', { name: 'Compare plans' })).toHaveAttribute('href', '/pricing')
+    // The allowance running out is an offer, never the Studio's error state.
+    await expect(page.getByText(/Could not start|Did not finish/)).toHaveCount(0)
+    await panel.screenshot({ path: 'test-results/paywall.png' })
+    await page.keyboard.press('Escape')
+    await expect(panel).toBeHidden()
+  })
+
+  test('video on the Free plan opens the same offer', async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('slate_mock_plan', 'free-spent'))
+    await page.goto('/studio')
+    await prompt(page, 'a red kite over a grey beach')
+    await page.getByRole('button', { name: /Generate video/i }).click()
+    await expect(page.getByTestId('paywall')).toContainText(/Videos are part of/i)
+  })
+
+  test('the pricing page states both plans', async ({ page }) => {
+    await page.goto('/pricing')
+    const main = page.locator('main')
+    for (const line of ['₹0', '₹799', '1 image', 'No videos', '15 camera moves', '50 images', '10 videos', 'Unlimited camera moves', 'no automatic renewal']) {
+      await expect(main).toContainText(line)
+    }
+  })
+})
 
 test.describe('Create Image', () => {
   test('shows sample inspiration photo in frame; each prompt gets its own result', async ({ page }) => {

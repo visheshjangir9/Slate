@@ -1,6 +1,6 @@
 import type { Generation } from '@/lib/generation/types'
 import { isStale, reduce } from '@/lib/generation/state'
-import type { BlobStore, GenerationStore, ListOptions, ListResult, NewGeneration, StoredBlob } from './types'
+import type { BlobStore, GenerationStore, ListOptions, ListResult, NewGeneration, StoredBlob, UsageRow } from './types'
 
 /**
  * In-memory adapter.
@@ -43,6 +43,11 @@ export class MemoryGenerationStore implements GenerationStore {
     const page = all.slice(start, start + opts.limit)
     const nextCursor = start + opts.limit < all.length ? page[page.length - 1]?.id ?? null : null
     return { items: page.map((r) => ({ ...r })), nextCursor }
+  }
+
+  async listUsage(deviceId: string): Promise<UsageRow[]> {
+    return [...this.rows.values()].filter((r) => r.deviceId === deviceId)
+      .map(({ provider, status, createdAt }) => ({ provider, status, createdAt }))
   }
 
   async patch(id: string, patch: Partial<Generation>): Promise<Generation | null> {

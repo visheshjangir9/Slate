@@ -4,6 +4,8 @@ import { resolveOwnerId } from '@/lib/api/session'
 import { notFound, ok, serverError } from '@/lib/api/respond'
 import { providerForModel } from '@/lib/providers/registry'
 import { isByokProviderTag } from '@/lib/byok/catalog'
+import { kindOf } from '@/lib/billing/plans'
+import { assertWithinPlan } from '@/lib/billing/usage'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -25,6 +27,10 @@ export async function POST(_req: NextRequest, ctx: Ctx) {
     // server; the key is sent again with the render, never stored.
     const byok = isByokProviderTag(source.provider)
     const provider = providerForModel(source.model)
+    // A retry is a new generation. A failed source was never counted, so
+    // retrying it fits wherever the first attempt did; retrying a finished
+    // one must still fit the plan.
+    if (!byok) await assertWithinPlan(ownerId, kindOf({ provider: provider.capabilities.id }))
     const clone = await store.create({
       deviceId: ownerId,
       prompt: source.prompt,

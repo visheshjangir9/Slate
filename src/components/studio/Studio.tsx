@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 import type { ReadonlyURLSearchParams } from 'next/navigation'
+import { Paywall } from '@/components/billing/Paywall'
 import { composerFromParams, useStudio, type VideoMode } from '@/lib/client/useStudio'
 import type { Generation } from '@/lib/generation/types'
 import { useUnloadGuard } from '@/lib/client/useUnloadGuard'
@@ -92,6 +93,7 @@ export function Studio({ workflow, params }: { workflow: Workflow; params: Reado
 
   return (
     <>
+      <Paywall />
       {s.notice && !stageError && (
         <div role="alert" className="flex items-center justify-between gap-3 border-b border-danger/30 bg-danger/10 px-4 py-2">
           <p className="text-xs text-danger">{s.notice}</p>
