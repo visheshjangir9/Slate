@@ -50,7 +50,7 @@ export const FEATURES_MENU: { title: string; items: MenuLink[] }[] = [
   {
     title: 'Image',
     items: [
-      { label: 'AI Image Generator', description: 'GPT Image 1, cropped to your frame', href: '/studio/image' },
+      { label: 'AI Image Generator', description: 'GPT Image 2.5, cropped to your frame', href: '/studio/image' },
       { label: 'Text to Image', description: 'Prompt to a finished image', href: '/studio/image' },
       { label: 'Image to Image', description: 'Not available in this build' },
     ],

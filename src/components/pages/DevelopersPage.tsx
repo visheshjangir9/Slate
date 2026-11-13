@@ -112,7 +112,7 @@ const ENDPOINTS: Endpoint[] = [
   {
     method: 'POST', path: '/api/generations/:id/render',
     summary: 'Run a server-executed job to completion: LTX-2 video or GPT Image.',
-    detail: 'Used when create returned "execution": "server". Writes each stage to the row as it happens and only marks the job completed once the file is in Slate storage. Model "gpt-image-1" produces a JPEG cropped to the requested aspect ratio.',
+    detail: 'Used when create returned "execution": "server". Writes each stage to the row as it happens and only marks the job completed once the file is in Slate storage. Model "gpt-image-1" (Slate\'s id; OpenAI runs gpt-image-2.5-sunburst) produces a JPEG cropped to the requested aspect ratio.',
     request: `curl -s -X POST -b cookies.txt https://YOUR_HOST/api/generations/GENERATION_ID/render`,
     response: `{ "generation": { "status": "completed", "outputUrl": "https://…/GENERATION_ID.jpg",
   "adjustments": [ { "field": "size", "requested": "9:16", "actual": "864×1536" } ] } }`,
@@ -224,7 +224,7 @@ export function DevelopersPage() {
                 settings chosen. It is not text-to-video diffusion, and Slate never claims it is.</p>
               <p><span className="font-semibold text-ink">LTX-2 Pro.</span> Generative video from Lightricks, called server-side.
                 The model animates the scene itself. Renders 4, 6 or 8 seconds; the MP4 is validated before the job completes.</p>
-              <p><span className="font-semibold text-ink">GPT Image 1.</span> OpenAI image generation at its nearest native size,
+              <p><span className="font-semibold text-ink">GPT Image 2.5.</span> OpenAI image generation at its nearest native size,
                 centre-cropped to your aspect ratio and stored as JPEG. No other model is ever substituted on failure.</p>
             </div>
           </section>

@@ -69,7 +69,7 @@ export const LIVE_MODELS: CatalogModel[] = [
   },
   {
     id: IMAGE_MODEL_ID,
-    name: 'GPT Image 1',
+    name: 'GPT Image 2.5',
     maker: 'OpenAI',
     kind: 'image',
     status: 'live',

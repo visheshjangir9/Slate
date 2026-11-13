@@ -28,7 +28,7 @@ export const imageProvider: GenerationProvider = {
   models: (): ModelDescriptor[] => [
     {
       id: IMAGE_MODEL_ID,
-      label: 'GPT Image 1',
+      label: 'GPT Image 2.5',
       description: 'Prompt to image, cropped to the frame you choose.',
       providerId: 'gpt-image',
       kind: 'image',

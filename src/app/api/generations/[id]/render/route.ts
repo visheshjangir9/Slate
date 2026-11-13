@@ -124,7 +124,7 @@ async function renderImage(row: Generation) {
   const store = generationStore()
   const id = row.id
   const ac = new AbortController()
-  // gpt-image-1 at High quality can take close to a minute; leave headroom
+  // GPT Image at High quality can take close to a minute; leave headroom
   // inside the function's own limit so we fail honestly rather than get killed.
   const timer = setTimeout(() => ac.abort(), 240_000)
   try {

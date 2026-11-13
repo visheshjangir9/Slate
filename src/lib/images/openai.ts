@@ -1,8 +1,9 @@
 import 'server-only'
 import type { ImageProvider, StillFailure, StillResult } from './types'
+import { GPT_IMAGE_MODEL, logImageUpstream } from './gptImage'
 
 /**
- * OpenAI image generation (gpt-image-1).
+ * OpenAI image generation (the model in GPT_IMAGE_MODEL).
  *
  * Primary image provider. Unlike the keyless service it replaces, this one is
  * rate-limit stable, watermark-free and returns the size we ask for -- so no
@@ -10,7 +11,7 @@ import type { ImageProvider, StillFailure, StillResult } from './types'
  */
 const ENDPOINT = 'https://api.openai.com/v1/images/generations'
 
-/** gpt-image-1 accepts a fixed set of sizes; pick the closest by aspect. */
+/** The model's recommended sizes; pick the closest by aspect. */
 function nearestSize(width: number, height: number): '1024x1024' | '1536x1024' | '1024x1536' {
   const ratio = width / height
   if (ratio > 1.2) return '1536x1024'
@@ -36,7 +37,7 @@ export const openaiImages: ImageProvider = {
       signal,
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-image-1',
+        model: GPT_IMAGE_MODEL,
         prompt: req.prompt,
         size: nearestSize(req.width, req.height),
         quality: req.quality ?? 'medium',
@@ -44,8 +45,11 @@ export const openaiImages: ImageProvider = {
       }),
     })
 
-    if (res.status === 429) return 'rate_limited'
-    if (!res.ok) return 'unavailable'
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as { error?: { code?: string; type?: string } } | null
+      logImageUpstream('still', res.status, err?.error)
+      return res.status === 429 ? 'rate_limited' : 'unavailable'
+    }
 
     const body = (await res.json()) as { data?: { b64_json?: string; url?: string }[] }
     const first = body?.data?.[0]

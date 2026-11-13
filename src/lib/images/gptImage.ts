@@ -12,7 +12,22 @@ import { gptNativeSize, imageOutputDims, IMAGE_QUALITY } from './dims'
  * different model's output.
  */
 const ENDPOINT = 'https://api.openai.com/v1/images/generations'
-export const GPT_IMAGE_MODEL = 'gpt-image-1'
+/**
+ * The model OpenAI runs. gpt-image-1 was shut down on 2026-10-23 and every call
+ * to it fails; this is OpenAI's named replacement, which takes the same sizes,
+ * quality levels and JPEG output. Slate's own catalog id stays 'gpt-image-1'
+ * because it is stored on every existing generation.
+ */
+export const GPT_IMAGE_MODEL = 'gpt-image-2.5-sunburst'
+
+/**
+ * Why OpenAI refused a call: status, error code and type only. Never the key,
+ * the prompt or OpenAI's message text. Without this a retired model or a
+ * billing problem is indistinguishable from a blip.
+ */
+export function logImageUpstream(op: string, status: number, error?: { code?: string | null; type?: string | null } | null): void {
+  console.warn(`[slate:image_upstream] ${op}`, JSON.stringify({ model: GPT_IMAGE_MODEL, status, code: error?.code ?? null, type: error?.type ?? null }))
+}
 
 export class ImageGenError extends Error {
   constructor(public code: string, message: string) {
@@ -62,6 +77,7 @@ export async function generateGptImage(opts: {
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { error?: { code?: string; type?: string } } | null
     const code = body?.error?.code ?? ''
+    logImageUpstream('generate', res.status, body?.error)
     if (code === 'insufficient_quota' || code === 'billing_hard_limit_reached') {
       throw new ImageGenError('image_no_credit', 'The OpenAI account is out of credit.')
     }

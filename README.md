@@ -26,7 +26,7 @@ Every button does something real, every setting changes the output file, and pro
 
 | | What you can do |
 |---|---|
-| **Image** | Turn a prompt into an image with GPT Image 1, cropped exactly to one of 6 aspect ratios. |
+| **Image** | Turn a prompt into an image with GPT Image 2.5, cropped exactly to one of 6 aspect ratios. |
 | **Video** | Generate a 4, 6 or 8 second video with LTX-2 Pro, from a prompt or from your own image. |
 | **Camera Motion** | Bring a photo and apply one of **15 real camera moves** (dolly, orbit, crane, crash zoom…). The video is rendered and encoded as an H.264 MP4 **inside your browser**. |
 | **Explore** | Start from ready-made "recipes" (a prompt, a camera move and settings) with one click. |
@@ -48,7 +48,7 @@ flowchart LR
     U[Browser<br/>Studio UI] -->|prompt + settings| API[Next.js API routes<br/>validate · track state]
     API --> DB[(Supabase Postgres<br/>generations)]
     API --> P{Provider}
-    P -->|image| O[OpenAI · GPT Image 1]
+    P -->|image| O[OpenAI · GPT Image 2.5]
     P -->|video| L[LTX-2 Pro]
     P -->|your key| B[Google · OpenAI · OpenRouter]
     U -->|Camera Motion| E[In-browser engine<br/>canvas + WebCodecs → MP4]
@@ -75,7 +75,7 @@ A few design decisions worth knowing:
 | Validation | **Zod** | Every API request is checked before it is used |
 | Database & files | **Supabase** (Postgres + Storage) | Real SQL with constraints, file storage in one service |
 | Accounts | **Supabase Auth** | Secure sessions in httpOnly cookies |
-| AI | **OpenAI GPT Image 1**, **LTX-2 Pro**, BYOK adapters | Images, generative video, user-owned models |
+| AI | **OpenAI GPT Image 2.5**, **LTX-2 Pro**, BYOK adapters | Images, generative video, user-owned models |
 | Video engine | **Canvas + WebCodecs + mp4-muxer** | Real H.264 files made in the browser |
 | Testing | **Vitest**, **Playwright** | Unit, integration and end-to-end browser tests |
 | Hosting | **Vercel** | Automatic deploys from `main` |
@@ -128,7 +128,7 @@ Copy [`.env.example`](.env.example) to `.env.local` in the project root and fill
 | `SUPABASE_URL` | Your Supabase project URL |
 | `SUPABASE_PUBLISHABLE_KEY` | Supabase public key (sign-in) |
 | `SUPABASE_SECRET_KEY` | Supabase secret key (server only) |
-| `OPENAI_API_KEY` | GPT Image 1 (optional) |
+| `OPENAI_API_KEY` | GPT Image 2.5 (optional) |
 | `LTXV_API_KEY` | LTX-2 Pro video (optional) |
 | `DEVICE_COOKIE_SECRET` | Signs the guest cookie and sign-up form tokens (`openssl rand -base64 32`) |
 | `NEXT_PUBLIC_SITE_URL` | Canonical address for SEO tags, sitemap and robots.txt (optional; defaults to the Vercel production domain) |
